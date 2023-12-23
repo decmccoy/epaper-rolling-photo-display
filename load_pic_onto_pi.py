@@ -17,15 +17,16 @@ def conv_image(input_image, output_image):
     p_img = Image.new('P', (600, 448))
     p_img.putpalette(palette)
     img = img.resize((600, 448))  # Resize to match the palette size
+    img = img.convert('RGB')
     conv = img.quantize(palette=p_img, dither=Image.FLOYDSTEINBERG, colors=7)
     conv.save(output_image)
 
 
 def main():
     # Set the image file path
-    user_name = 'dec.mccoy'
-    image_name = 'test_image_2'
-    image_file_type = 'JPG'
+    user_name = 'darcy'
+    image_name = 'test_image'
+    image_file_type = 'PNG'
     image_path = f"/home/{user_name}/Documents/epaper_proj/{image_name}.{image_file_type}"
     output_path = f"/home/{user_name}/Documents/epaper_proj/{image_name}.bmp"
 
