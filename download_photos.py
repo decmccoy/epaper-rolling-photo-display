@@ -19,8 +19,18 @@ def authenticate():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+                'credentials.json', SCOPES,
+                redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+
+            auth_uri, _ = flow.authorization_url()
+            print(f'Please visit {auth_uri} on your local computer')
+
+            # The user will get an authorization code. This code is used to get the
+            # access token.
+            code = input('Enter the authorization code:\n').split("data='")[1].strip("\\n')")
+            flow.fetch_token(code=code)
+
+            creds = flow.credentials
 
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
@@ -112,3 +122,4 @@ if __name__ == '__main__':
     os.makedirs(download_folder_path, exist_ok=True)
 
     download_and_delete_photos(album_name, download_folder_path)
+
