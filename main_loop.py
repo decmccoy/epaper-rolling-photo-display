@@ -1,5 +1,5 @@
-from download_delete_test2 import download_and_delete_photos
-from load_pic_onto_pi import load_pic_onto_screen, conv_image
+from download_photos import download_and_delete_photos
+from load_pic_onto_frame import load_pic_onto_screen, conv_image
 import os
 import time
 
