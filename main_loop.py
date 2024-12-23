@@ -17,7 +17,7 @@ def night_time_pause(pause_at=0, pause_until=8):
     night_time = True
     while night_time:
         current_time = time.strftime("%H:%M")
-        hour = conv_GMT_to_EST((current_time.split(':')[0]))
+        hour = conv_GMT_to_EST(int(current_time.split(':')[0]))
         if (hour > pause_at) and (hour < pause_until):
             print('on night time pause')
             time.sleep(60 * 10)
@@ -34,30 +34,27 @@ os.makedirs(download_folder_path, exist_ok=True)
 os.makedirs(bitmap_folder, exist_ok=True)
 running = True
 
-while True:
-
-    list_of_photos = os.listdir("downloaded_photos")
+list_of_photos = os.listdir("downloaded_photos")
+for photo in list_of_photos:
+    bitmap_name = bitmap_folder + '/' + photo.split('.')[0] + '.bmp'
+    if not os.path.exists(bitmap_name):
+        print("Converting Image to 7-colour bitmap")
+        conv_image(download_folder_path + '/' + photo, bitmap_name)
+running = True
+list_of_bitmaps = os.listdir(bitmap_folder)
+for bitmap in list_of_bitmaps:
     for photo in list_of_photos:
-        bitmap_name = bitmap_folder + '/' + photo.split('.')[0] + '.bmp'
-        if not os.path.exists(bitmap_name):
-            print("Converting Image to 7-colour bitmap")
-            conv_image(download_folder_path + '/' + photo, bitmap_name)
-    running = True
-    time.sleep(5 * 60)
+        if bitmap.split('.')[0] == photo.split('.')[0]:
+            break
+        if photo == list_of_photos[-1]:
+            os.remove(bitmap_folder + '/' + bitmap)
 
-    list_of_bitmaps = os.listdir(bitmap_folder)
 
+while True:
     for bitmap in list_of_bitmaps:
-        for photo in list_of_photos:
-            if bitmap.split('.')[0] == photo.split('.')[0]:
-                break
-            if photo == list_of_photos[-1]:
-                os.remove(bitmap_folder + '/' + bitmap)
-
-    while running:
-        for bitmap in list_of_bitmaps:
-            load_pic_onto_screen(bitmap_folder + '/' + bitmap)
-            time.sleep(60 * 5)
-            current_time = time.strftime("%H:%M")
-            hour = int(current_time.split(':')[0])
-            minute = int(current_time.split(':')[1])
+        night_time_pause()
+        load_pic_onto_screen(bitmap_folder + '/' + bitmap)
+        time.sleep(60 * 3)
+        current_time = time.strftime("%H:%M")
+        hour = int(current_time.split(':')[0])
+        minute = int(current_time.split(':')[1])
