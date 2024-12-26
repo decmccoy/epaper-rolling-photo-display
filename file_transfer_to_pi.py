@@ -50,6 +50,51 @@ def transfer_files_to_pi(hostname, username, password, local_folder_path, remote
         # Close the SSH connection
         ssh.close()
 
+
+def delete_files_in_remote_folder(hostname, username, password, remote_folder_path):
+    """
+    Connects to a Raspberry Pi Zero via SSH and deletes all files in a specified folder.
+
+    Parameters:
+    hostname (str): The hostname or IP address of the Raspberry Pi Zero.
+    username (str): The SSH username.
+    password (str): The SSH password.
+    remote_folder_path (str): The path to the remote folder.
+
+    Returns:
+    None
+    """
+    try:
+        # Create an SSH client
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Connect to the remote host
+        ssh_client.connect(hostname, username=username, password=password)
+
+        # Form the command to delete all files in the directory
+        command = f"find {remote_folder_path} -type f -delete"
+
+        # Execute the command
+        stdin, stdout, stderr = ssh_client.exec_command(command)
+
+        # Wait for the command to complete
+        stdout.channel.recv_exit_status()
+
+        # Check for errors
+        error_output = stderr.read().decode()
+        if error_output:
+            print(f"Error: {error_output}")
+        else:
+            print(f"All files in {remote_folder_path} have been deleted.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        # Close the SSH connection
+        ssh_client.close()
+
 # Example usage:
 # transfer_files_to_pi(hostname="raspberrypi1", username="mom_dad", password="raspberry",
 #                      local_folder_path=r"C:\Users\decmc\Downloads\test_photos",

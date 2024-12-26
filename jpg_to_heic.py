@@ -3,7 +3,7 @@ import os
 from pillow_heif import register_heif_opener
 import zipfile
 import shutil
-from file_transfer_to_pi import transfer_files_to_pi
+from file_transfer_to_pi import transfer_files_to_pi, delete_files_in_remote_folder
 
 
 register_heif_opener()
@@ -104,23 +104,38 @@ def transfer_files(source_dir, destination_dir):
             print(f"Error transferring {file_name}: {e}")
 
 
+def read_pi_info_file(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    pi_info_list = [line.strip() for line in lines]
+    ret = {}
+    for line in pi_info_list:
+        ret[line.split(' ')[0]] = line.split(' ')[2].strip('"')
+    return ret
+
+
 zip_folder_path = r"C:\Users\decmc\Downloads\Family_Shared_Photo_Frame-001.zip"
-folder_path = r"C:\Users\decmc\Downloads\Family_Shared_Photo_Frame-001.zip".replace('.zip', '')
 album_name = 'Family_Shared_Photo_Frame'
-host_name = "raspberrypi1"
-user_name = "mom_dad"
-password = "raspberry"
-local_folder = folder_path
-remote_folder = "/home/mom_dad/Documents/epaper_proj/downloaded_photos/"
+raspberry_pi_info_path = r"C:\Users\decmc\Documents\Code\raspberry_pi_zero_info.txt"
+
+pi_info = read_pi_info_file(raspberry_pi_info_path)
+host_name = pi_info['host_name']
+user_name = pi_info['user_name']
+password = pi_info['password']
+
+remote_folder = f"/home/{user_name}/Documents/epaper_proj/downloaded_photos/"
 
 
+folder_path = zip_folder_path.replace('.zip', '')
+local_image_folder = f"{folder_path}/{album_name}"
 unzip_file(zip_folder_path, folder_path)
-convert_heic_to_jpg(f"{folder_path}/{album_name}")
-transfer_files(fr"{folder_path}\{album_name}\converted_jpg",
-               fr"{folder_path}/{album_name}")
+convert_heic_to_jpg(local_image_folder)
+transfer_files(f"{local_image_folder}/converted_jpg", local_image_folder)
 
-os.rmdir(fr"{folder_path}/{album_name}\converted_jpg")
+os.rmdir(f"{local_image_folder}/converted_jpg")
 
-transfer_files_to_pi(hostname=host_name, username=user_name, password=password,
-                     local_folder_path=local_folder,
+delete_files_in_remote_folder(hostname=host_name, username=user_name, password=password,
+                              remote_folder_path=remote_folder)
+
+transfer_files_to_pi(hostname=host_name, username=user_name, password=password, local_folder_path=local_image_folder,
                      remote_folder_path=remote_folder)

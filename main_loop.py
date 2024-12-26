@@ -3,7 +3,6 @@ import os
 import time
 
 
-
 def conv_GMT_to_EST(hour):
     if hour > 4:
         hour -= 5
@@ -25,36 +24,32 @@ def night_time_pause(pause_at=0, pause_until=8):
             night_time = False
 
 
-album_name = "Family_Shared_Photo_Frame"
 download_folder_path = "downloaded_photos"
 bitmap_folder = 'bitmap_photos'
 
-# Create the download folder if it doesn't exist
-os.makedirs(download_folder_path, exist_ok=True)
+# Create the bitmap folder if it doesn't exist
 os.makedirs(bitmap_folder, exist_ok=True)
-running = True
-
-list_of_photos = os.listdir("downloaded_photos")
-for photo in list_of_photos:
-    bitmap_name = bitmap_folder + '/' + photo.split('.')[0] + '.bmp'
-    if not os.path.exists(bitmap_name):
-        print("Converting Image to 7-colour bitmap")
-        conv_image(download_folder_path + '/' + photo, bitmap_name)
-running = True
-list_of_bitmaps = os.listdir(bitmap_folder)
-for bitmap in list_of_bitmaps:
-    for photo in list_of_photos:
-        if bitmap.split('.')[0] == photo.split('.')[0]:
-            break
-        if photo == list_of_photos[-1]:
-            os.remove(bitmap_folder + '/' + bitmap)
-
 
 while True:
+    list_of_photos = os.listdir("downloaded_photos")
+    for photo in list_of_photos:
+        bitmap_name = bitmap_folder + '/' + photo.split('.')[0] + '.bmp'
+        if not os.path.exists(bitmap_name):
+            print("Converting Image to 7-colour bitmap")
+            conv_image(download_folder_path + '/' + photo, bitmap_name)
+
+    list_of_bitmaps = os.listdir(bitmap_folder)
     for bitmap in list_of_bitmaps:
-        night_time_pause()
-        load_pic_onto_screen(bitmap_folder + '/' + bitmap)
-        time.sleep(60 * 3)
-        current_time = time.strftime("%H:%M")
-        hour = int(current_time.split(':')[0])
-        minute = int(current_time.split(':')[1])
+        for photo in list_of_photos:
+            if bitmap.split('.')[0] == photo.split('.')[0]:
+                break
+            if photo == list_of_photos[-1]:
+                os.remove(bitmap_folder + '/' + bitmap)
+    try:
+        for bitmap in list_of_bitmaps:
+            night_time_pause()
+            load_pic_onto_screen(bitmap_folder + '/' + bitmap)
+            time.sleep(60 * 3)
+    except FileNotFoundError:
+        pass
+
