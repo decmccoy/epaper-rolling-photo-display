@@ -24,14 +24,16 @@ def night_time_pause(pause_at=0, pause_until=8):
             night_time = False
 
 
-download_folder_path = "downloaded_photos"
-bitmap_folder = 'bitmap_photos'
+parent_dir = r'/home/mom_dad/Documents/epaper_proj/'
+download_folder_path = f"{parent_dir}downloaded_photos"
+bitmap_folder = f"{parent_dir}bitmap_photos"
 
 # Create the bitmap folder if it doesn't exist
 os.makedirs(bitmap_folder, exist_ok=True)
+time.sleep(120)
 
 while True:
-    list_of_photos = os.listdir("downloaded_photos")
+    list_of_photos = os.listdir(download_folder_path)
     for photo in list_of_photos:
         bitmap_name = bitmap_folder + '/' + photo.split('.')[0] + '.bmp'
         if not os.path.exists(bitmap_name):
