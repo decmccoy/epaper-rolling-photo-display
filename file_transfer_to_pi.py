@@ -37,11 +37,14 @@ def transfer_files_to_pi(hostname, username, password, local_folder_path, remote
                     remote_file_path = os.path.join(remote_folder_path, relative_path)
 
                     # Create remote directory structure
-                    ssh.exec_command(f'mkdir -p "{os.path.dirname(remote_file_path)}"')
+                    if '.jpg' in relative_path.lower():
+                        ssh.exec_command(f'mkdir -p "{os.path.dirname(remote_file_path)}"')
 
-                    # Transfer the file
-                    scp.put(local_file_path, remote_file_path)
-                    print(f'Transferred file {local_file_path}')
+                        # Transfer the file
+                        scp.put(local_file_path, remote_file_path)
+                        print(f'Transferred file {relative_path}')
+                    else:
+                        print(f'Skipping file {relative_path}, it is not a JPG')
 
         print("Files successfully transferred!")
     except Exception as e:
