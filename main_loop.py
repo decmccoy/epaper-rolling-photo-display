@@ -1,6 +1,34 @@
-from load_pic_onto_frame import load_pic_onto_screen, conv_image
+import shutil
+from PIL import Image
+from waveshare_epd import epd5in65f
 import os
 import time
+import logger
+
+
+debug_mode = False
+parent_directory = r'/home/mom_dad/Documents/epaper_proj/'
+download_folder = f"{parent_directory}downloaded_photos"
+display_folder = f"{parent_directory}bitmap_photos"
+downloaded_names = os.listdir(download_folder)
+display_names = os.listdir(display_folder)
+
+
+def copy_bitmaps_if_necessary():
+    for downloaded_name in downloaded_names:
+        display_bitmap_path = display_folder + '/' + downloaded_name.split('.')[0] + '.bmp'
+        if not os.path.exists(display_bitmap_path):
+            logger.log(debug_mode, "Copying bitmap to display folder")
+            shutil.copyfile(download_folder + '/' + downloaded_name, display_bitmap_path)
+
+
+def delete_bitmaps_if_necessary():
+    for display_name in display_names:
+        for downloaded_name in downloaded_names:
+            if display_name.split('.')[0] == downloaded_name.split('.')[0]:
+                break
+            if downloaded_name == downloaded_names[-1]:
+                os.remove(display_folder + '/' + display_name)
 
 
 def conv_GMT_to_EST(hour):
@@ -11,47 +39,46 @@ def conv_GMT_to_EST(hour):
     return hour
 
 
-def night_time_pause(pause_at=0, pause_until=8):
+def pause_if_nighttime(pause_at=0, pause_until=8):
     assert pause_at < pause_until  # Darcy was too lazy to code for the case where this is not True
-    night_time = True
-    while night_time:
+    nighttime = True
+    while nighttime:
         current_time = time.strftime("%H:%M")
         hour = conv_GMT_to_EST(int(current_time.split(':')[0]))
         if (hour > pause_at) and (hour < pause_until):
-            print('on night time pause')
+            logger.log(debug_mode, "On night time pause")
             time.sleep(60 * 10)
         else:
-            night_time = False
+            nighttime = False
 
 
-parent_dir = r'/home/mom_dad/Documents/epaper_proj/'
-download_folder_path = f"{parent_dir}downloaded_photos"
-bitmap_folder = f"{parent_dir}bitmap_photos"
+def load_pic_onto_screen(image_name):
+    logger.log(debug_mode, "Loading image onto screen")
+    image = Image.open(image_name)
+    epaper_frame = epd5in65f.EPD()
+    try:
+        epaper_frame.init()
+        epaper_frame.Clear()
+        epaper_frame.display(epaper_frame.getbuffer(image))
+        logger.log(debug_mode, "Image displayed successfully")
+    except Exception as e:
+        logger.log(debug_mode, f"Error: {e}")
+    finally:
+        epaper_frame.sleep()
 
-# Create the bitmap folder if it doesn't exist
-os.makedirs(bitmap_folder, exist_ok=True)
-time.sleep(120)
+
+os.makedirs(display_folder, exist_ok=True)
+time.sleep(120)  # 2 min wait so that pi can exit boot sequence (this is necessary)
 
 while True:
-    list_of_photos = os.listdir(download_folder_path)
-    for photo in list_of_photos:
-        bitmap_name = bitmap_folder + '/' + photo.split('.')[0] + '.bmp'
-        if not os.path.exists(bitmap_name):
-            print("Converting Image to 7-colour bitmap")
-            conv_image(download_folder_path + '/' + photo, bitmap_name)
-
-    list_of_bitmaps = os.listdir(bitmap_folder)
-    for bitmap in list_of_bitmaps:
-        for photo in list_of_photos:
-            if bitmap.split('.')[0] == photo.split('.')[0]:
-                break
-            if photo == list_of_photos[-1]:
-                os.remove(bitmap_folder + '/' + bitmap)
     try:
-        for bitmap in list_of_bitmaps:
-            night_time_pause()
-            load_pic_onto_screen(bitmap_folder + '/' + bitmap)
+        copy_bitmaps_if_necessary()
+        delete_bitmaps_if_necessary()
+        for display_name in display_names:
+            pause_if_nighttime()
+            load_pic_onto_screen(display_folder + '/' + display_name)
             time.sleep(60 * 3)
-    except FileNotFoundError:
-        pass
-
+    except Exception as e:
+        logger.log(debug_mode, f"Error: {e}")
+        time.sleep(60 * 10)
+    

@@ -1,6 +1,4 @@
 from PIL import Image
-from waveshare_epd import epd5in65f
-import os
 
 
 def resize_and_pad(image, target_width, target_height):
@@ -45,21 +43,6 @@ def convert_image(input_path, output_path):
 
     converted_image = resized_image.quantize(palette=image_palette, dither=Image.FLOYDSTEINBERG, colors=7)
     converted_image.save(output_path)
-
-def load_pic_onto_screen(image_name):
-    print("loading image onto screen")
-    image = Image.open(image_name)
-    epd = epd5in65f.EPD()
-
-    try:
-        epd.init()
-        epd.Clear()
-        epd.display(epd.getbuffer(image))
-        print("Image displayed successfully.")
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        epd.sleep()
 
 
 def main():
