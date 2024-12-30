@@ -7,9 +7,7 @@ def transfer_files_to_pi(ssh_client, local_folder_path, remote_folder_path):
     Logs in to a Raspberry Pi Zero via SSH and transfers a folder of files to the Pi.
 
     Parameters:
-        hostname (str): The hostname or IP address of the Pi Zero.
-        username (str): The SSH username.
-        password (str): The SSH password.
+        ssh_client (SSHClient): The ssh client already connected with password and username.
         local_folder_path (str): Path to the local folder to transfer.
         remote_folder_path (str): Path to the remote folder on the Pi Zero where files will be copied.
 
@@ -48,24 +46,19 @@ def delete_files_in_remote_folder(ssh_client, remote_folder_path):
     Connects to a Raspberry Pi Zero via SSH and deletes all files in a specified folder.
 
     Parameters:
-    hostname (str): The hostname or IP address of the Raspberry Pi Zero.
-    username (str): The SSH username.
-    password (str): The SSH password.
+    ssh_client (SSHClient): The ssh client already connected with password and username.
     remote_folder_path (str): The path to the remote folder.
 
     Returns:
     None
     """
     try:
-        # Form the command to delete all files in the directory
-        command = f"find {remote_folder_path} -type f -delete"
-
-        stdin, stdout, stderr = ssh_client.exec_command(command)
+        delete_files_command = f"find {remote_folder_path} -type f -delete"
+        stdin, stdout, stderr = ssh_client.exec_command(delete_files_command)
 
         # Wait for the command to complete
         stdout.channel.recv_exit_status()
 
-        # Check for errors
         error_output = stderr.read().decode()
         if error_output:
             print(f"Error: {error_output}")
