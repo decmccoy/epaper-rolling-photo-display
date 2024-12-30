@@ -1,9 +1,8 @@
-import paramiko
 from scp import SCPClient
 import os
 
 
-def transfer_files_to_pi(hostname, username, password, local_folder_path, remote_folder_path):
+def transfer_files_to_pi(ssh_client, local_folder_path, remote_folder_path):
     """
     Logs in to a Raspberry Pi Zero via SSH and transfers a folder of files to the Pi.
 
@@ -18,17 +17,8 @@ def transfer_files_to_pi(hostname, username, password, local_folder_path, remote
         None
     """
     try:
-        # Create an SSH client instance
-        ssh = paramiko.SSHClient()
-
-        # Automatically add the server's host key if missing
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Connect to the Pi Zero
-        ssh.connect(hostname, username=username, password=password)
-
         # Create an SCP client for file transfer
-        with SCPClient(ssh.get_transport()) as scp:
+        with SCPClient(ssh_client.get_transport()) as scp:
             # Iterate through files in the local folder and transfer them
             for root, _, files in os.walk(local_folder_path):
                 for file in files:
@@ -38,7 +28,7 @@ def transfer_files_to_pi(hostname, username, password, local_folder_path, remote
 
                     # Create remote directory structure
                     if '.jpg' in relative_path.lower():
-                        ssh.exec_command(f'mkdir -p "{os.path.dirname(remote_file_path)}"')
+                        ssh_client.exec_command(f'mkdir -p "{os.path.dirname(remote_file_path)}"')
 
                         # Transfer the file
                         scp.put(local_file_path, remote_file_path)
@@ -50,11 +40,10 @@ def transfer_files_to_pi(hostname, username, password, local_folder_path, remote
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        # Close the SSH connection
-        ssh.close()
+        ssh_client.close()
 
 
-def delete_files_in_remote_folder(hostname, username, password, remote_folder_path):
+def delete_files_in_remote_folder(ssh_client, remote_folder_path):
     """
     Connects to a Raspberry Pi Zero via SSH and deletes all files in a specified folder.
 
@@ -68,17 +57,9 @@ def delete_files_in_remote_folder(hostname, username, password, remote_folder_pa
     None
     """
     try:
-        # Create an SSH client
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Connect to the remote host
-        ssh_client.connect(hostname, username=username, password=password)
-
         # Form the command to delete all files in the directory
         command = f"find {remote_folder_path} -type f -delete"
 
-        # Execute the command
         stdin, stdout, stderr = ssh_client.exec_command(command)
 
         # Wait for the command to complete
@@ -93,9 +74,7 @@ def delete_files_in_remote_folder(hostname, username, password, remote_folder_pa
 
     except Exception as e:
         print(f"An error occurred: {e}")
-
     finally:
-        # Close the SSH connection
         ssh_client.close()
 
 # Example usage:
