@@ -1,5 +1,23 @@
 from scp import SCPClient
 import os
+import paramiko
+
+
+def read_pi_secrets(file_path):
+    with open(file_path, 'r') as secrets_file:
+        lines = secrets_file.readlines()
+    pi_info_list = [line.strip() for line in lines]
+    secrets = {}
+    for line in pi_info_list:
+        secrets[line.split(' ')[0]] = line.split(' ')[2].strip('"')
+    return secrets
+
+
+def create_ssh_client(hostname, username, password):
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh_client.connect(hostname, username=username, password=password)
+    return ssh_client
 
 
 def transfer_files_to_pi(ssh_client, local_folder_path, remote_folder_path):

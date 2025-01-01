@@ -1,5 +1,21 @@
 from PIL import Image
 import os
+import zipfile
+
+
+def unzip_file(zip_file_path, extract_to):
+    """
+    Unzips a zip file to the specified directory.
+
+    Parameters:
+    - zip_file_path (str): The path to the zip file.
+    - extract_to (str): The directory where the contents should be extracted.
+    """
+    os.makedirs(extract_to, exist_ok=True)
+
+    with zipfile.ZipFile(zip_file_path, 'r') as zip:
+        zip.extractall(extract_to)
+    print(f"Extracted all files to {extract_to}")
 
 
 def resize_jpg(image_path, destination, target_width, target_height):
@@ -25,6 +41,7 @@ def resize_jpg(image_path, destination, target_width, target_height):
         padded_image.paste(resized_image, (left_padding, top_padding))
         
         image.save(destination)
+    print(f"Saved '{image_path}' as resized jpg to '{destination}'")
 
 
 def jpg_to_bitmap(image_path, destination):
@@ -44,6 +61,7 @@ def jpg_to_bitmap(image_path, destination):
         image_palette.putpalette(palette)
         bitmap = image.quantize(palette=image_palette, dither=Image.FLOYDSTEINBERG, colors=7)
         bitmap.save(destination)
+    print(f"Saved '{image_path}' as bitmap to '{destination}'")
 
 
 def save_as_jpg(image_path, destination):
