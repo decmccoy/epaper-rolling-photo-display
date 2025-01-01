@@ -19,8 +19,9 @@ def unzip_file(zip_file_path, extract_to):
     print(f"Extracted all files to {extract_to}")
 
 
-def resize_jpg(image_path, destination, target_width, target_height):
-    os.makedirs(destination, exist_ok=True)
+def resize_jpg(image_path, destination_folder, target_width, target_height):
+    os.makedirs(destination_folder, exist_ok=True)
+    image_name = os.path.basename(image_path).split('.')[0]
     
     with Image.open(image_path) as image:
         width, height = image.size
@@ -41,8 +42,8 @@ def resize_jpg(image_path, destination, target_width, target_height):
 
         padded_image.paste(resized_image, (left_padding, top_padding))
         
-        image.save(destination)
-    print(f"Saved '{image_path}' as resized jpg to '{destination}'")
+        image.save(f'{destination_folder}/{image_name}.jpg', 'JPEG')
+    print(f"Saved '{image_name}' as resized jpg to '{destination_folder}'")
 
 
 def jpg_to_bitmap(image_path, destination_folder):
@@ -63,7 +64,7 @@ def jpg_to_bitmap(image_path, destination_folder):
         image_palette.putpalette(palette)
         bitmap = image.quantize(palette=image_palette, dither=Image.FLOYDSTEINBERG, colors=7)
         bitmap.save(f'{destination_folder}/{image_name}.bmp')
-    print(f"Saved '{image_path}' as bitmap to '{destination_folder}'")
+    print(f"Saved '{image_name}' as bitmap to '{destination_folder}'")
 
 
 def save_as_jpg(image_path, destination_folder):
@@ -73,5 +74,5 @@ def save_as_jpg(image_path, destination_folder):
     
     with Image.open(image_path) as image:
         image.convert('RGB').save(f'{destination_folder}/{image_name}.jpg', 'JPEG')
-    print(f"Saved '{image_path}' as jpg to '{destination_folder}'")
+    print(f"Saved '{image_name}' as jpg to '{destination_folder}'")
             
