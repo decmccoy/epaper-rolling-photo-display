@@ -7,7 +7,8 @@ import logger
 
 
 debug_mode = False
-parent_directory = r'/home/mom_dad/Documents/epaper_proj/'
+pi_username = "mom_dad"
+parent_directory = fr'/home/{pi_username}/Documents/epaper_proj/'
 download_folder = f"{parent_directory}downloaded_photos"
 display_folder = f"{parent_directory}bitmap_photos"
 downloaded_names = os.listdir(download_folder)
