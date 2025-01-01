@@ -1,6 +1,7 @@
 from PIL import Image
 import os
 import zipfile
+from pillow_heif import register_heif_opener
 
 
 def unzip_file(zip_file_path, extract_to):
@@ -44,8 +45,9 @@ def resize_jpg(image_path, destination, target_width, target_height):
     print(f"Saved '{image_path}' as resized jpg to '{destination}'")
 
 
-def jpg_to_bitmap(image_path, destination):
-    os.makedirs(destination, exist_ok=True)
+def jpg_to_bitmap(image_path, destination_folder):
+    os.makedirs(destination_folder, exist_ok=True)
+    image_name = os.path.basename(image_path).split('.')[0]
     palette = [
         0, 0, 0,
         255, 255, 255,
@@ -60,14 +62,16 @@ def jpg_to_bitmap(image_path, destination):
         image_palette = Image.new('P', (600, 448))
         image_palette.putpalette(palette)
         bitmap = image.quantize(palette=image_palette, dither=Image.FLOYDSTEINBERG, colors=7)
-        bitmap.save(destination)
-    print(f"Saved '{image_path}' as bitmap to '{destination}'")
+        bitmap.save(f'{destination_folder}/{image_name}.bmp')
+    print(f"Saved '{image_path}' as bitmap to '{destination_folder}'")
 
 
-def save_as_jpg(image_path, destination):
-    os.makedirs(destination, exist_ok=True)
+def save_as_jpg(image_path, destination_folder):
+    register_heif_opener()
+    os.makedirs(destination_folder, exist_ok=True)
+    image_name = os.path.basename(image_path).split('.')[0]
     
     with Image.open(image_path) as image:
-        image.convert('RGB').save(destination, 'JPEG')
-    print(f"Saved '{image_path}' as jpg to '{destination}'")
+        image.convert('RGB').save(f'{destination_folder}/{image_name}.jpg', 'JPEG')
+    print(f"Saved '{image_path}' as jpg to '{destination_folder}'")
             

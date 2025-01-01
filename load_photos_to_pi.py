@@ -4,13 +4,18 @@ from pillow_heif import register_heif_opener
 from file_transfer_util import create_ssh_client, read_pi_secrets, transfer_files_to_pi, delete_files_in_remote_folder
 from conversion_util import unzip_file, save_as_jpg, resize_jpg, jpg_to_bitmap
 
+debug_mode = True
+if debug_mode:
+    input("PRESS ENTER WHEN THE PHOTOS FILES HAVE BEEN DELETED (I KNOW YOU FORGOT)")
 
-register_heif_opener()
+register_heif_opener()  # This allows the conversion of HEIC to JPG (ChatGPT fixed this bug, no clue why it's necessary)
 zip_folder_path = r"C:\Users\decmc\Downloads\Family_Shared_Photo_Frame-001.zip"
+album_name = 'Family_Shared_Photo_Frame'
 root_path = os.path.dirname(zip_folder_path)
-raspberry_pi_info_path = f"{root_path}/raspberry_pi_zero_info.txt"
+raspberry_pi_info_path = f"./raspberry_pi_zero_info.json"
 working_path = "/working/"
 working_unzipped_path = f"{root_path}{working_path}unzipped"
+working_path_with_album = f"{working_unzipped_path}/{album_name}" if album_name else working_unzipped_path
 working_jpg_path = f"{root_path}{working_path}jpg"
 working_resized_path = f"{root_path}{working_path}resized"
 working_bitmap_path = f"{root_path}{working_path}bitmap"
@@ -20,15 +25,15 @@ remote_folder_path = f"/home/{pi_secrets['user_name']}/Documents/epaper_proj/dow
 
 unzip_file(zip_folder_path, working_unzipped_path)
 
-unzipped_files = os.listdir(working_unzipped_path)
+unzipped_files = os.listdir(working_path_with_album)
 heic_images = [file for file in unzipped_files if file.lower().endswith('.heic')]
 for heic in heic_images:
-    heic_path = os.path.join(working_unzipped_path, heic)
+    heic_path = os.path.join(working_path_with_album, heic)
     save_as_jpg(heic_path, working_jpg_path)
     
 jpg_images = [file for file in unzipped_files if file.lower().endswith('.jpg')]
 for jpg in jpg_images:
-    jpg_path = os.path.join(working_unzipped_path, jpg)
+    jpg_path = os.path.join(working_path_with_album, jpg)
     save_as_jpg(jpg_path, working_jpg_path)
 
 jpg_images = [file for file in working_jpg_path if file.lower().endswith('.jpg')]
@@ -45,5 +50,8 @@ ssh_client = create_ssh_client(pi_secrets['host_name'], pi_secrets['user_name'],
 delete_files_in_remote_folder(ssh_client, remote_folder_path)
 transfer_files_to_pi(ssh_client, working_bitmap_path, remote_folder_path)
 
-os.remove(working_path)
-print(f"Deleted {working_path}.")
+if not debug_mode:
+    os.remove(working_path)
+    print(f"Deleted {working_path}.")
+else:
+    print("WARNING MAKE SURE YOU DELETE THESE PHOTOS BEFORE RUNNING AGAIN")

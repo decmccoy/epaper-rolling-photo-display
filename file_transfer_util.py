@@ -1,16 +1,13 @@
+import json
 from scp import SCPClient
 import os
 import paramiko
 
 
 def read_pi_secrets(file_path):
-    with open(file_path, 'r') as secrets_file:
-        lines = secrets_file.readlines()
-    pi_info_list = [line.strip() for line in lines]
-    secrets = {}
-    for line in pi_info_list:
-        secrets[line.split(' ')[0]] = line.split(' ')[2].strip('"')
-    return secrets
+    with open(file_path, "r") as json_file:
+        data = json.load(json_file)  # Load the JSON data
+    return data
 
 
 def create_ssh_client(hostname, username, password):
