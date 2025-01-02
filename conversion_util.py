@@ -62,6 +62,7 @@ def jpg_to_bitmap(image_path, destination_folder):
     with Image.open(image_path) as image:
         image_palette = Image.new('P', (600, 448))
         image_palette.putpalette(palette)
+        image = image.resize((600, 448))  # Resize to match the palette size
         bitmap = image.quantize(palette=image_palette, dither=Image.FLOYDSTEINBERG, colors=7)
         bitmap.save(f'{destination_folder}/{image_name}.bmp')
     print(f"Saved '{image_name}' as bitmap to '{destination_folder}'")

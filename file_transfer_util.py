@@ -17,7 +17,7 @@ def create_ssh_client(hostname, username, password):
     return ssh_client
 
 
-def transfer_files_to_pi(ssh_client, local_folder_path, remote_folder_path):
+def transfer_files_to_pi(ssh_client, local_folder_path, remote_folder_path, close_SSH_client=True):
     """
     Logs in to a Raspberry Pi Zero via SSH and transfers a folder of files to the Pi.
 
@@ -40,23 +40,24 @@ def transfer_files_to_pi(ssh_client, local_folder_path, remote_folder_path):
                     remote_file_path = os.path.join(remote_folder_path, relative_path)
 
                     # Create remote directory structure
-                    if '.jpg' in relative_path.lower():
+                    if '.bmp' in relative_path.lower():
                         ssh_client.exec_command(f'mkdir -p "{os.path.dirname(remote_file_path)}"')
 
                         # Transfer the file
                         scp.put(local_file_path, remote_file_path)
                         print(f'Transferred file {relative_path}')
                     else:
-                        print(f'Skipping file {relative_path}, it is not a JPG')
+                        print(f'Skipping file {relative_path}, it is not a Bitmap')
 
         print("Files successfully transferred!")
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        ssh_client.close()
+        if close_SSH_client:
+            ssh_client.close()
 
 
-def delete_files_in_remote_folder(ssh_client, remote_folder_path):
+def delete_files_in_remote_folder(ssh_client, remote_folder_path, close_SSH_client=True):
     """
     Connects to a Raspberry Pi Zero via SSH and deletes all files in a specified folder.
 
@@ -83,7 +84,8 @@ def delete_files_in_remote_folder(ssh_client, remote_folder_path):
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        ssh_client.close()
+        if close_SSH_client:
+            ssh_client.close()
 
 # Example usage:
 # transfer_files_to_pi(hostname="raspberrypi1", username="mom_dad", password="raspberry",
