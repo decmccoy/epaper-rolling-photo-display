@@ -19,6 +19,7 @@ working_path_with_album = f"{working_unzipped_path}/{album_name}" if album_name 
 working_jpg_path = f"{root_path}{working_path}jpg"
 working_resized_path = f"{root_path}{working_path}resized"
 working_bitmap_path = f"{root_path}{working_path}bitmap"
+accepted_image_types = ('.heic', '.jpg')
 
 pi_secrets = read_pi_secrets(raspberry_pi_info_path)
 remote_folder_path = f"/home/{pi_secrets['user_name']}/Documents/epaper_proj/downloaded_photos/"
@@ -26,15 +27,11 @@ remote_folder_path = f"/home/{pi_secrets['user_name']}/Documents/epaper_proj/dow
 unzip_file(zip_folder_path, working_unzipped_path)
 
 unzipped_files = os.listdir(working_path_with_album)
-heic_images = [file for file in unzipped_files if file.lower().endswith('.heic')]
-for heic in heic_images:
-    heic_path = os.path.join(working_path_with_album, heic)
-    save_as_jpg(heic_path, working_jpg_path)
-    
-jpg_images = [file for file in unzipped_files if file.lower().endswith('.jpg')]
-for jpg in jpg_images:
-    jpg_path = os.path.join(working_path_with_album, jpg)
-    save_as_jpg(jpg_path, working_jpg_path)
+for accepted_image_type in accepted_image_types:
+    accepted_images = [file for file in unzipped_files if file.lower().endswith(accepted_image_type)]
+    for image in accepted_images:
+        image_path = os.path.join(working_path_with_album, image)
+        save_as_jpg(image_path, working_jpg_path)
 
 jpg_file_list = os.listdir(working_jpg_path)
 for jpg in jpg_file_list:
