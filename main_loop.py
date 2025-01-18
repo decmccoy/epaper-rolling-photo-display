@@ -6,11 +6,14 @@ import time
 import logger
 
 
-debug_mode = False
+debug_mode = True
+time.sleep(120)  # 2 min wait so that pi can exit boot sequence (this is necessary)
+
 pi_username = "mom_dad"
 parent_directory = fr'/home/{pi_username}/Documents/epaper_proj/'
 download_folder = f"{parent_directory}downloaded_photos"
 display_folder = f"{parent_directory}bitmap_photos"
+os.makedirs(display_folder, exist_ok=True)
 downloaded_names = os.listdir(download_folder)
 display_names = os.listdir(display_folder)
 
@@ -68,9 +71,6 @@ def load_pic_onto_screen(image_name):
         epaper_frame.sleep()
 
 
-os.makedirs(display_folder, exist_ok=True)
-time.sleep(120)  # 2 min wait so that pi can exit boot sequence (this is necessary)
-
 while True:
     try:
         copy_bitmaps_if_necessary()
@@ -82,4 +82,3 @@ while True:
     except Exception as e:
         logger.log(debug_mode, f"Error: {e}")
         time.sleep(60 * 10)
-    

@@ -1,4 +1,3 @@
-from PIL import Image
 import os
 from pillow_heif import register_heif_opener
 from file_transfer_util import create_ssh_client, read_pi_secrets, transfer_files_to_pi, delete_files_in_remote_folder

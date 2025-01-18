@@ -6,7 +6,7 @@ import paramiko
 
 def read_pi_secrets(file_path):
     with open(file_path, "r") as json_file:
-        data = json.load(json_file)  # Load the JSON data
+        data = json.load(json_file)
     return data
 
 
