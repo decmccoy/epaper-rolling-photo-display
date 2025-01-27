@@ -42,7 +42,7 @@ def resize_jpg(image_path, destination_folder, target_width, target_height):
 
         padded_image.paste(resized_image, (left_padding, top_padding))
         
-        image.save(f'{destination_folder}/{image_name}.jpg', 'JPEG')
+        padded_image.save(f'{destination_folder}/{image_name}.jpg', 'JPEG')
     print(f"Saved '{image_name}' as resized jpg to '{destination_folder}'")
 
 
