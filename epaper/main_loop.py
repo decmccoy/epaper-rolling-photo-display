@@ -3,7 +3,7 @@ from PIL import Image
 from waveshare_epd import epd5in65f
 import os
 import time
-import logger
+import epaper.logger as logger
 
 
 debug_mode = True

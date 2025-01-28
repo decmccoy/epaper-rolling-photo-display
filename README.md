@@ -7,21 +7,26 @@ This repo holds both the onboard software for the Pi and the script to move phot
 
 ### Cloning
 
-```
+```bash
 git clone https://github.com/decmccoy/epaper_project.git
 ```
 
 ### File Structure
 
-* Onboard Pi files:
-    * `main_loop.py`
-    * `logger.py`
-* Image transfer script files:
-    * `load_photos_to_pi.py`
-    * `conversion_util.py`
-    * `file_transfer_util.py`
-    * `EXAMPLE_downloaded_photos.zip`
-    * `EXAMPLE_raspberry_pi_info.json`
+Onboard Pi files:
+```bash
+├── main_loop.py
+└── logger.py
+```
+Image transfer script files:
+```bash
+├── epaper
+│   ├── load_photos_to_pi.py
+│   ├── conversion_util.py
+│   ├── file_transfer_util.py
+├── EXAMPLE_raspberry_pi_info.json
+└── EXAMPLE_downloaded_photos.zip
+```
 
 ### Setting up the Raspberry Pi
 
@@ -33,41 +38,47 @@ git clone https://github.com/decmccoy/epaper_project.git
 
 #### Steps
 
-- Image the micro SD card
-    - Set your own username and password
+To image the micro SD card, plug it into a computer and make the following selections:<br/>
+![Pi imager menu](docs\assets\pi_imager_menu.png)<br/>
+Click next, then `EDIT SETTINGS`:<br/>
+![OS options menu](docs\assets\os_options_menu.png)<br/>
+- Set your own username and password, and select the `Configure wireless LAN` to enter your wifi credentials
     > ⚠️ Don't forget these values
-    - Select Enable SSH
-    - Insert the micro SD into the Pi
+
+Select Enable SSH:<br/>
+![OS customisation](docs\assets\os_customisation.png)<br/>
+- Then press `SAVE` and insert the micro SD into the Pi
 - Plug in your Pi, and wait for the green LED to stop blinking. The first time you do this, it may take up to 10 minutes, so be patient
 - Open PuTTY
     - Enter the hostname of the Pi
     - Click Open, and enter your username and password
-- Enable Spi by opening the Raspberry Pi configuration:
-```
+
+Enable Spi by opening the Raspberry Pi configuration:
+```bash
 sudo raspi-config
 ```
-- Then navigate to `Interfacing Options` -> `SPI` and make sure it is enabled
-- Create the project folder:
-```
+Then navigate to `Interfacing Options` -> `SPI` and make sure it is enabled<br/>
+Create the project folder:
+```bash
 cd Documents
 mkdir epaper_proj
 ```
-- Run the following commands to download and unpack the waveshare package:
-```
+Run the following commands to download and unpack the waveshare package:
+```bash
 git clone https://github.com/waveshare/e-Paper.git
 cd e-Paper/RaspberryPi_JetsonNano/python
 sudo apt-get install python3-pip libopenjp2-7 libtiff5
 sudo python3 setup.py install
 ```
-- Use Thonny to move the onboard python files to the Pi and run `main_loop.py`
+Use Thonny to move the onboard python files to the Pi and run `main_loop.py`
 
 ### Executing the script
 
 - Download all the photos as a zip file and place it in the same directory as the script
 - Create the `raspberry_pi_info.json` to hold the Pi host_name, user_name and password
-- Run the following command in the terminal where the script is located:
-```
-python3 load_photos_to_pi.py
+- Run the following command in the terminal in the base directory of the project:
+```bash
+python3 epaper\load_photos_to_pi.py
 ```
 
 ## Authors

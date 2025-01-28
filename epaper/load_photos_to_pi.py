@@ -8,10 +8,10 @@ if debug_mode:
     input("PRESS ENTER WHEN THE PHOTOS FILES HAVE BEEN DELETED (I KNOW YOU FORGOT)")
 
 register_heif_opener()  # This allows the conversion of HEIC to JPG (ChatGPT fixed this bug, no clue why it's necessary)
-zip_folder_path = r"C:\Users\decmc\Downloads\Rosie-001.zip"
-album_name = 'Rosie'
+zip_folder_path = r"C:\Users\darcy\Documents\Personal\Projects\epaper_project\Family_Shared_Photo_Frame-001.zip"
+album_name = 'Family_Shared_Photo_Frame'
 root_path = os.path.dirname(zip_folder_path)
-raspberry_pi_info_path = f"./raspberry_pi_zero_info_bayswater.json"
+raspberry_pi_info_path = f"{root_path}/raspberry_pi_zero_info_panet.json"
 working_path = "/working/"
 working_unzipped_path = f"{root_path}{working_path}unzipped"
 working_path_with_album = f"{working_unzipped_path}/{album_name}" if album_name else working_unzipped_path
