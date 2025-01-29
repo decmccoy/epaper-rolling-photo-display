@@ -40,7 +40,7 @@ Image transfer script files:
 
 To image the micro SD card, plug it into a computer and make the following selections:<br/>
 ![Pi imager menu](docs/assets/pi_imager_menu.png)<br/>
-Click next, then `EDIT SETTINGS`:<br/>
+Click `NEXT`, then `EDIT SETTINGS`:<br/>
 ![OS options menu](docs/assets/os_options_menu.png)<br/>
 - Set your own username and password, and select the `Configure wireless LAN` to enter your wifi credentials
     > ⚠️ Don't forget these values
