@@ -21,7 +21,7 @@ working_bitmap_path = f"{root_path}{working_path}bitmap"
 accepted_image_types = ('.heic', '.jpg')
 
 pi_secrets = read_pi_secrets(raspberry_pi_info_path)
-remote_folder_path = f"/home/{pi_secrets['user_name']}/Documents/epaper_proj/downloaded_photos/"
+remote_folder_path = f"/home/{pi_secrets['username']}/Documents/epaper_proj/downloaded_photos/"
 
 unzip_file(zip_folder_path, working_unzipped_path)
 
@@ -42,7 +42,7 @@ for resized_jpg in resized_jpg_file_list:
     jpg_path = os.path.join(working_resized_path, resized_jpg)
     jpg_to_bitmap(jpg_path, working_bitmap_path)
 
-ssh_client = create_ssh_client(pi_secrets['host_name'], pi_secrets['user_name'], pi_secrets['password'])
+ssh_client = create_ssh_client(pi_secrets['host_name'], pi_secrets['username'], pi_secrets['password'])
 delete_files_in_remote_folder(ssh_client, remote_folder_path, close_SSH_client=False)
 transfer_files_to_pi(ssh_client, working_bitmap_path, remote_folder_path, close_SSH_client=True)
 
