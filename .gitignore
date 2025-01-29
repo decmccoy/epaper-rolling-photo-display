@@ -8,3 +8,4 @@ working/
 # Files used by script
 *.zip
 *raspberry_pi*.json
+!EXAMPLE_raspberry_pi_info.json
