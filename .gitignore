@@ -1,0 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Folders produced by script
+working/
+
+# Files used by script
+*.zip
+*raspberry_pi*.json
+!EXAMPLE_raspberry_pi_info.json
