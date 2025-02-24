@@ -1,3 +1,5 @@
+<a id="readme-top"></a>
+
 # Raspberry Pi Epaper Photo Frame
 
 This project displays photos on a Epaper photo frame using a connected Raspberry Pi Zero. 
@@ -87,3 +89,5 @@ python3 epaper/load_photos_to_pi.py
 
 - [decmccoy](https://github.com/decmccoy)
 - [darcymccoy](https://github.com/darcymccoy)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
