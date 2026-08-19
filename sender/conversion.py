@@ -196,7 +196,6 @@ def prepare_album(source_dir, working_dir, panel_width, panel_height):
             to_panel_bitmap(fitted, bitmap_dir)
             logger.info("[%d/%d] %s", index, len(photos), photo.name)
         except Exception as error:
-            # One corrupt photo should not abandon the other ninety-nine.
             logger.warning("Skipped %s: %s", photo.name, error)
 
     return bitmap_dir

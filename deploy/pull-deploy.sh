@@ -1,9 +1,5 @@
 #!/bin/bash
-# Pull the latest code from GitHub and restart the frame if anything changed.
-#
-# Run on a timer by epaper-update.timer. This is the deploy path that works once
-# the frame lives somewhere you cannot SSH into: nothing ever reaches in, the Pi
-# reaches out.
+# Pull the latest code from GitHub and restart the frame if anything changed. Run on a timer by epaper-update.timer.
 set -euo pipefail
 
 REPO="${EPAPER_REPO:-$HOME/epaper}"
@@ -26,7 +22,7 @@ if [ -s requirements-pi.txt ]; then
     "$REPO/.venv/bin/pip" install -q -r requirements-pi.txt
 fi
 
-chmod +x "$REPO"/deploy/*.sh "$REPO"/deploy/post-receive 2>/dev/null || true
+chmod +x "$REPO"/deploy/*.sh 2>/dev/null || true
 
 sudo systemctl restart epaper
 logger -t epaper-deploy "updated ${before:0:8} -> ${after:0:8}"

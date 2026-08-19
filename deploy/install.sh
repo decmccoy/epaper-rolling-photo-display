@@ -44,13 +44,13 @@ if [ -s "$REPO/requirements-pi.txt" ]; then
     "$REPO/.venv/bin/pip" install -q -r "$REPO/requirements-pi.txt"
 fi
 
-echo "==> Allowing the deploy hooks to restart the service without a password"
+echo "==> Allowing the deploy script to restart the service without a password"
 echo "$SERVICE_USER ALL=(root) NOPASSWD: /bin/systemctl restart epaper" \
     | sudo tee /etc/sudoers.d/epaper > /dev/null
 sudo chmod 0440 /etc/sudoers.d/epaper
 
-echo "==> Making the deploy scripts executable"
-chmod +x "$REPO"/deploy/*.sh "$REPO/deploy/post-receive" 2>/dev/null || true
+echo "==> Making the deploy script executable"
+chmod +x "$REPO"/deploy/*.sh 2>/dev/null || true
 
 echo "==> Installing systemd units"
 for unit in epaper.service epaper-update.service epaper-update.timer; do

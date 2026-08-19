@@ -31,7 +31,7 @@ Onboard Pi files:
 │   ├── install.sh          # one-time setup on a fresh image
 │   ├── epaper.service      # runs the display loop
 │   ├── epaper-update.*     # timer that pulls updates from GitHub
-│   └── post-receive        # git push straight to the Pi, for bench work
+│   └── pull-deploy.sh      # pulls from GitHub and restarts the frame
 └── requirements-pi.txt
 ```
 
@@ -168,16 +168,14 @@ journalctl -u epaper -f
 
 ### Executing the script
 
-Install the desktop dependencies and create your config:
+Install the desktop dependencies:
 
 ```bash
 pip install -r requirements-sender.txt
-cp EXAMPLE_raspberry_pi_info.json raspberry_pi_info.json
 ```
 
+- Create and fill in the `raspberry_pi_info.json` config file
 - Download all the photos as a zip file
-- Fill in `raspberry_pi_info.json` with the Pi's hostname, username, and the path to your SSH
-  key. It is gitignored, so it never leaves your machine
 - Run the following command in the base directory:
 
 ```bash
@@ -193,36 +191,17 @@ python -m sender.load_photos --zip "path/to/album.zip"
 | `--config` | Point at a different settings file. |
 | `--verbose` | Log every file, not just a summary per photo. |
 
-Only changed photos are uploaded, and photos removed from the album are deleted from the Pi,
-so re-running after adding one photo transfers one photo.
+Only changed photos are uploaded, and photos removed from the album are deleted from the Pi.
 
 ## Deploying code changes
 
-The Pi checks GitHub every 15 minutes and restarts itself if anything changed, so it can pick
-up changes without needing any inbound access to it.
-
-```bash
-git push origin main     # the frame picks it up within 15 minutes
-```
+The Pi checks GitHub every 15 minutes and restarts itself if anything changed.
 
 To force an immediate update, or to check on it:
 
 ```bash
 sudo systemctl start epaper-update.service
 journalctl -u epaper-update -n 20
-```
-
-While the Pi is on your bench you can also push straight to it. Copy `deploy/post-receive`
-into a bare repo on the Pi and add it as a remote:
-
-```bash
-# on the Pi
-git init --bare ~/epaper.git
-cp ~/epaper/deploy/post-receive ~/epaper.git/hooks/ && chmod +x ~/epaper.git/hooks/post-receive
-
-# on your computer
-git remote add pi ssh://<username>@<hostname>.local/home/<username>/epaper.git
-git push pi main
 ```
 
 ## Development
