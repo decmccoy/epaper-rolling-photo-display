@@ -17,6 +17,10 @@ try:
 except ImportError:  # not on the Pi, or the driver was never installed
     epd5in65f = None
 
+# Photos already warned about for being the wrong size. Resizing does not change
+# the file on disk, so the same photo is still wrong on the next rotation.
+_warned_about_size = set()
+
 
 class PanelUnavailableError(RuntimeError):
     """Raised when the Waveshare driver is missing and dry-run is not enabled."""
@@ -53,11 +57,13 @@ def show(image_path):
 
     with Image.open(image_path) as image:
         if image.size != (config.PANEL_WIDTH, config.PANEL_HEIGHT):
-            logger.warning(
-                "%s is %dx%d, expected %dx%d - resizing to fit",
-                image_path.name, image.width, image.height,
-                config.PANEL_WIDTH, config.PANEL_HEIGHT,
-            )
+            if image_path.name not in _warned_about_size:
+                _warned_about_size.add(image_path.name)
+                logger.warning(
+                    "%s is %dx%d, expected %dx%d - resizing to fit",
+                    image_path.name, image.width, image.height,
+                    config.PANEL_WIDTH, config.PANEL_HEIGHT,
+                )
             image = image.resize((config.PANEL_WIDTH, config.PANEL_HEIGHT))
 
         panel = epd5in65f.EPD()
@@ -65,7 +71,9 @@ def show(image_path):
             panel.init()
             panel.Clear()
             panel.display(panel.getbuffer(image))
-            logger.info("Displayed %s", image_path.name)
+            # Debug, not info: this is the one thing that happens on every
+            # single cycle, and at info it is the whole steady-state log volume.
+            logger.debug("Displayed %s", image_path.name)
         finally:
             panel.sleep()
 

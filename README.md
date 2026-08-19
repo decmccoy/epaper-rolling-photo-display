@@ -150,6 +150,13 @@ systemctl status epaper
 journalctl -u epaper -f
 ```
 
+To turn on the debug pi logging:
+
+```bash
+sudo systemctl stop epaper
+EPAPER_DEBUG=1 ~/epaper/.venv/bin/python -m pi.main_loop
+```
+
 ### Executing the script
 
 Install the desktop dependencies:
@@ -179,7 +186,7 @@ Only changed photos are uploaded, and photos removed from the album are deleted 
 
 ## Deploying code changes
 
-The Pi checks GitHub every 15 minutes and restarts itself if anything changed.
+The Pi checks GitHub every hour and restarts itself if anything changed.
 
 To force an immediate update, or to check on it:
 

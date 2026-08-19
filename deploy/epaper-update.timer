@@ -4,7 +4,7 @@ Description=Check GitHub for photo frame updates
 [Timer]
 # Give the Pi time to get on the network after a power cut before the first check.
 OnBootSec=3min
-OnUnitActiveSec=15min
+OnUnitActiveSec=1h
 # Catch up on a missed check rather than waiting a full interval after downtime.
 Persistent=true
 

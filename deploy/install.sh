@@ -52,6 +52,16 @@ sudo chmod 0440 /etc/sudoers.d/epaper
 echo "==> Making the deploy script executable"
 chmod +x "$REPO"/deploy/*.sh 2>/dev/null || true
 
+echo "==> Capping how much disk and memory the journal may use"
+sudo mkdir -p /etc/systemd/journald.conf.d
+sudo tee /etc/systemd/journald.conf.d/epaper.conf > /dev/null <<'EOF'
+# Installed by epaper-rolling-photo-display/deploy/install.sh.
+[Journal]
+SystemMaxUse=32M
+RuntimeMaxUse=16M
+EOF
+sudo systemctl restart systemd-journald
+
 echo "==> Installing systemd units"
 for unit in epaper.service epaper-update.service epaper-update.timer; do
     sed -e "s|/home/mom_dad/epaper|$REPO|g" \

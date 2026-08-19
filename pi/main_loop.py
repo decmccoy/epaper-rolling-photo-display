@@ -2,6 +2,11 @@
 
 Run it with 'python -m pi.main_loop' so that the 'pi' package is importable.
 Under systemd it is started by deploy/epaper.service.
+
+Logging is deliberately near-silent. The frame is meant to run untouched for
+months on an SD card, so a healthy loop writes nothing after startup: routine
+events are debug, and each distinct fault is reported once rather than on every
+cycle. An empty 'journalctl -u epaper' means it is working.
 """
 
 import logging
@@ -22,15 +27,53 @@ logger = logging.getLogger("epaper")
 # on it, so a systemd stop takes effect immediately instead of after a photo.
 _stopping = threading.Event()
 
+# Faults already written to the journal. A permanent fault - an unplugged panel,
+# one corrupt bitmap, an empty photo folder - recurs on every cycle, so logging
+# it each time would mean a traceback every few minutes for as long as the fault
+# lasts. Each distinct fault is reported once and stays quiet until a clean pass
+# clears the set.
+_reported_faults = set()
+
 
 def _handle_signal(signum, _frame):
-    logger.info("Received %s, shutting down", signal.Signals(signum).name)
+    logger.debug("Received %s, shutting down", signal.Signals(signum).name)
     _stopping.set()
 
 
 def _sleep(seconds):
     """Sleep, but wake immediately if the process has been asked to stop."""
     _stopping.wait(seconds)
+
+
+def _report_fault(signature, message, *args, show_traceback=False):
+    """
+    Write a fault to the journal, but only the first time it is seen.
+
+    Parameters:
+        signature (tuple): Identity of the fault. Display failures deliberately
+            leave the photo name out of it, so a dead panel reports once instead
+            of once per photo in the folder.
+        message (str): Log message, %-style, with args following.
+        show_traceback (bool): Log the current exception's traceback too.
+
+    Returns:
+        None
+    """
+    if signature in _reported_faults:
+        return
+
+    _reported_faults.add(signature)
+    if show_traceback:
+        logger.exception(message, *args)
+    else:
+        logger.warning(message, *args)
+
+
+def _clear_faults():
+    """Note that a full pass succeeded, logging the recovery at most once."""
+    if _reported_faults:
+        _reported_faults.clear()
+        logger.info("Recovered, displaying photos normally")
 
 
 def mirror_incoming_to_display():
@@ -137,7 +180,7 @@ def wait_out_quiet_hours():
     announced = False
     while is_quiet_hour() and not _stopping.is_set():
         if not announced:
-            logger.info("Quiet hours, holding the current image")
+            logger.debug("Quiet hours, holding the current image")
             announced = True
         _sleep(config.PAUSE_POLL_SECONDS)
 
@@ -166,9 +209,14 @@ def run():
             photos = mirror_incoming_to_display()
 
             if not photos:
-                logger.warning("No photos to display, waiting")
+                _report_fault(("empty",), "No photos to display, waiting")
                 _sleep(config.ERROR_RETRY_SECONDS)
                 continue
+
+            # Only a pass that shows every photo without complaint counts as
+            # healthy. Clearing after each individual success instead would let
+            # one permanently broken photo re-report itself every rotation.
+            clean_pass = True
 
             for photo in photos:
                 if _stopping.is_set():
@@ -182,20 +230,32 @@ def run():
                     display.show(photo)
                 except FileNotFoundError:
                     # Removed by a mirror pass on another cycle. Skip it.
-                    logger.info("%s disappeared before it could be shown", photo.name)
+                    logger.debug("%s disappeared before it could be shown", photo.name)
                     continue
                 except Exception as error:
                     # One unreadable photo must not take down the whole frame.
-                    logger.exception("Could not display %s: %s", photo.name, error)
+                    clean_pass = False
+                    _report_fault(
+                        ("display", type(error).__name__, str(error)),
+                        "Could not display %s: %s", photo.name, error,
+                        show_traceback=True,
+                    )
 
                 _sleep(config.DISPLAY_SECONDS)
 
+            if clean_pass and not _stopping.is_set():
+                _clear_faults()
+
         except Exception as error:
-            logger.exception("Display loop error: %s", error)
+            _report_fault(
+                ("loop", type(error).__name__, str(error)),
+                "Display loop error: %s", error,
+                show_traceback=True,
+            )
             _sleep(config.ERROR_RETRY_SECONDS)
 
     display.sleep()
-    logger.info("Stopped")
+    logger.debug("Stopped")
 
 
 if __name__ == "__main__":

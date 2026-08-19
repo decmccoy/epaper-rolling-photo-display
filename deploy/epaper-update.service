@@ -8,3 +8,6 @@ Type=oneshot
 User=mom_dad
 WorkingDirectory=/home/mom_dad/epaper
 ExecStart=/home/mom_dad/epaper/deploy/pull-deploy.sh
+
+# Drop any log below a warning
+LogLevelMax=notice
