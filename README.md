@@ -146,9 +146,12 @@ nmcli connection show
 Once connected to the Pi:
 
 ```bash
+sudo apt update && sudo apt install -y git
 git clone https://github.com/decmccoy/epaper-rolling-photo-display.git ~/epaper
 ~/epaper/deploy/install.sh
 ```
+
+> The Lite image does not ship `git`, so it has to be installed before the clone.
 
 `install.sh` enables SPI, installs the apt packages, creates the virtualenv, fetches the
 Waveshare driver, and enables both systemd units. It is safe to re-run.

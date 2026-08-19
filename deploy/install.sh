@@ -13,7 +13,7 @@ SERVICE_USER="$(id -un)"
 
 echo "==> Installing apt packages (prebuilt for ARMv6, nothing compiles here)"
 sudo apt update
-sudo apt install -y git rsync python3-venv python3-pil python3-spidev python3-lgpio
+sudo apt install -y rsync python3-venv python3-pil python3-spidev python3-lgpio
 
 echo "==> Enabling SPI"
 sudo raspi-config nonint do_spi 0
@@ -40,6 +40,9 @@ echo "==> Allowing the deploy hooks to restart the service without a password"
 echo "$SERVICE_USER ALL=(root) NOPASSWD: /bin/systemctl restart epaper" \
     | sudo tee /etc/sudoers.d/epaper > /dev/null
 sudo chmod 0440 /etc/sudoers.d/epaper
+
+echo "==> Making the deploy scripts executable"
+chmod +x "$REPO"/deploy/*.sh "$REPO/deploy/post-receive" 2>/dev/null || true
 
 echo "==> Installing systemd units"
 for unit in epaper.service epaper-update.service epaper-update.timer; do
