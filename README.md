@@ -6,9 +6,7 @@ This project displays photos on an Epaper photo frame using a connected Raspberr
 This repo holds both the onboard software for the Pi and the script to convert photos on a
 computer and send them to the Pi over the network.
 
-Photos are converted on your computer and only finished bitmaps are sent to the Pi. Decoding
-HEIC and dithering to the panel's seven colours takes seconds on a laptop and a very long time
-on an ARMv6 Zero W, so the Pi does none of it.
+Photos are converted on a computer and only finished bitmaps are sent to the Pi.
 
 ## Getting Started
 
@@ -48,7 +46,7 @@ Image transfer script files:
 
 ### Setting up the Raspberry Pi
 
-#### Dependancies
+#### Dependencies
 
 - [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
 - An SSH client ([PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html) on
@@ -58,32 +56,24 @@ Image transfer script files:
 
 #### Imaging the micro SD card
 
-Plug the card into a computer, open the imager and select **Raspberry Pi OS Lite (32-bit)**,
-under `Raspberry Pi OS (other)`:<br/>
-![Pi imager menu](docs/assets/pi_imager_menu.png)<br/>
+- Plug the card into a computer, open the imager and select **Raspberry Pi OS Lite (32-bit)**, under `Raspberry Pi OS (other)`
 
-> ⚠️ 32-bit is not a preference. The Pi Zero W is ARMv6 and the 64-bit images will not boot.
-> Lite rather than Desktop, because there is no monitor and only 512&nbsp;MB of RAM.
-
-Click `NEXT`, then `EDIT SETTINGS`:<br/>
-![OS options menu](docs/assets/os_options_menu.png)<br/>
+    > ⚠️ 32-bit is not a preference. The Pi Zero W is ARMv6 and the 64-bit images will not boot.
+    > Lite rather than Desktop, because there is no monitor and only 512&nbsp;MB of RAM.
 
 - Set the hostname, and your own username and password
     > ⚠️ Don't forget these values
 - Select `Configure wireless LAN` to enter your wifi credentials, and set the wifi country
 - Set your locale and timezone
+- Enable SSH
 
-Select Enable SSH:<br/>
-![OS customisation](docs/assets/os_customisation.png)<br/>
+    > Public-key authentication is recommended over a password. Generate a key first if you don't already have one, then paste the public half into the imager:
+    >
+    > ```bash
+    > ssh-keygen -t ed25519 -C "epaper-frame"
+    > ```
 
-Public-key authentication is recommended over a password. Generate a key first if you do not
-already have one, then paste the public half into the imager:
-
-```bash
-ssh-keygen -t ed25519 -C "epaper-frame"
-```
-
-Then press `SAVE` and write the image to the card.
+- Then press `SAVE` and write the image to the card
 
 #### Enabling USB gadget mode
 
@@ -92,13 +82,12 @@ mode. This gives you a shell over a plain USB cable even when the wifi settings 
 which saves re-imaging the card.
 
 - In `config.txt`, under `[all]`, add `dtoverlay=dwc2`
-- In `cmdline.txt` — **one single line, never add a newline** — insert
-  `modules-load=dwc2,g_ether` immediately after `rootwait`
+- In `cmdline.txt` insert `modules-load=dwc2,g_ether` immediately after `rootwait`
+    > ⚠️ Ensure `cmdline.txt` stays one single line
 
 #### First boot
 
-Insert the micro SD into the Pi and plug it in. The first boot takes ten minutes or more while
-it resizes the filesystem, so be patient. It is not hung.
+Insert the micro SD into the Pi and plug it in. The first boot takes ten minutes so be patient.
 
 ### Connecting to the Pi
 
@@ -107,8 +96,7 @@ the network.
 
 #### Over a USB cable
 
-Connect a cable from your computer to the Pi's `USB` port — **not** `PWR IN`, which only
-supplies power. With gadget mode enabled the Pi appears as a network device:
+Connect a cable from your computer to the Pi's `USB` port — **not** `PWR IN`. With gadget mode enabled the Pi appears as a network device:
 
 ```bash
 ssh <username>@<hostname>.local
@@ -128,8 +116,7 @@ ssh <username>@<hostname>.local
 Or, using PuTTY, enter the host name of the Pi and click `Open`:<br/>
 ![Putty Configuration](docs/assets/putty_configuration.png)<br/>
 
-To add another wifi network — for example the one the frame will live on — connect over the
-cable or the current network and run:
+To add another wifi network, connect over the cable or the current network and run:
 
 ```bash
 sudo nmcli connection add type wifi con-name <name> ifname wlan0 \
@@ -156,14 +143,11 @@ git clone https://github.com/decmccoy/epaper-rolling-photo-display.git ~/epaper
 `install.sh` enables SPI, installs the apt packages, creates the virtualenv, fetches the
 Waveshare driver, and enables both systemd units. It is safe to re-run.
 
-Check it came up, and smoke-test the panel:
+Check that it worked and is running:
 
 ```bash
 systemctl status epaper
 journalctl -u epaper -f
-
-~/epaper/.venv/bin/python -c "from waveshare_epd import epd5in65f; \
-  e = epd5in65f.EPD(); e.init(); e.Clear(); e.sleep(); print('panel OK')"
 ```
 
 ### Executing the script

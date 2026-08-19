@@ -9,10 +9,13 @@ venv/
 # Folders produced by the sender script
 working/
 
-# Photo and display state on the Pi (kept outside the repo, but just in case)
+# Photo and display state on the Pi
 epaper-data/
 
 # Files used by script
 *.zip
 *raspberry_pi*.json
 !EXAMPLE_raspberry_pi_info.json
+
+# PyCharm
+.idea/
