@@ -2,8 +2,15 @@
 __pycache__/
 *.py[cod]
 
-# Folders produced by script
+# Virtual environments
+.venv/
+venv/
+
+# Folders produced by the sender script
 working/
+
+# Photo and display state on the Pi (kept outside the repo, but just in case)
+epaper-data/
 
 # Files used by script
 *.zip

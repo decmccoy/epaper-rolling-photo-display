@@ -1,0 +1,17 @@
+# Onboard dependencies for the Raspberry Pi Zero W (ARMv6).
+#
+# Deliberately almost empty. On ARMv6 anything with a C extension must come from
+# apt as a prebuilt package, never from pip, which would compile it from source
+# and can take an hour or die on memory. Install these first:
+#
+#   sudo apt install -y python3-pil python3-spidev python3-lgpio python3-venv
+#   python3 -m venv --system-site-packages ~/epaper/.venv
+#
+# The --system-site-packages flag is what lets the venv see them.
+#
+# The Waveshare panel driver is not on PyPI and is installed separately:
+#
+#   git clone --depth 1 https://github.com/waveshare/e-Paper.git ~/e-Paper
+#   ~/epaper/.venv/bin/pip install ~/e-Paper/RaspberryPi_JetsonNano/python
+#
+# Add only pure-Python packages below.

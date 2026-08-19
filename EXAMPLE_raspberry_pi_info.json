@@ -1,1 +1,8 @@
-{"host_name":"REPLACE_ME","username":"REPLACE_ME","password":"REPLACE_ME"}
+{
+  "host_name": "REPLACE_ME.local",
+  "username": "REPLACE_ME",
+  "key_filename": "~/.ssh/id_ed25519",
+  "port": 22,
+  "remote_photos_path": "/home/REPLACE_ME/epaper-data/photos",
+  "_comment": "Copy this to raspberry_pi_info.json and fill it in. Prefer key_filename over a password; if you must use one, replace key_filename with \"password\": \"...\". raspberry_pi_info.json is gitignored."
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Pull photo frame updates from GitHub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=mom_dad
+WorkingDirectory=/home/mom_dad/epaper
+ExecStart=/home/mom_dad/epaper/deploy/pull-deploy.sh

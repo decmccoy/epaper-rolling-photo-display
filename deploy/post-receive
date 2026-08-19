@@ -1,0 +1,30 @@
+#!/bin/bash
+# Bare-repo hook for pushing straight from your laptop while the Pi is on your
+# bench. Copy to ~/epaper.git/hooks/post-receive and chmod +x.
+#
+# Once the frame moves to your parents' house this stops being reachable and
+# pull-deploy.sh takes over. Keep both; they do not conflict.
+set -euo pipefail
+
+TARGET="${EPAPER_REPO:-$HOME/epaper}"
+GIT_DIR_PATH="$HOME/epaper.git"
+BRANCH="${EPAPER_BRANCH:-main}"
+
+while read -r _oldrev newrev ref; do
+    if [ "$ref" != "refs/heads/$BRANCH" ]; then
+        echo "--> ignoring $ref, only $BRANCH is deployed"
+        continue
+    fi
+
+    git --work-tree="$TARGET" --git-dir="$GIT_DIR_PATH" checkout -f "$BRANCH"
+    cd "$TARGET"
+
+    if [ -s requirements-pi.txt ]; then
+        "$TARGET/.venv/bin/pip" install -q -r requirements-pi.txt
+    fi
+
+    chmod +x "$TARGET"/deploy/*.sh "$TARGET"/deploy/post-receive 2>/dev/null || true
+
+    sudo systemctl restart epaper
+    echo "--> deployed ${newrev:0:8}, epaper restarted"
+done

@@ -1,0 +1,23 @@
+[Unit]
+Description=E-paper photo frame display loop
+Documentation=https://github.com/decmccoy/epaper-rolling-photo-display
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mom_dad
+WorkingDirectory=/home/mom_dad/epaper
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/mom_dad/epaper/.venv/bin/python -m pi.main_loop
+
+# The loop catches its own errors; this covers the case where it dies outright.
+Restart=always
+RestartSec=30
+
+# Give the loop time to finish a panel refresh and put the hardware to sleep.
+KillSignal=SIGTERM
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target
