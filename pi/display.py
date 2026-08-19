@@ -26,7 +26,7 @@ def _require_driver():
     if epd5in65f is None:
         raise PanelUnavailableError(
             "waveshare_epd is not installed. Install it into the venv with "
-            "'.venv/bin/pip install ~/e-Paper/RaspberryPi_JetsonNano/python', "
+            "'.venv/bin/pip install --no-deps ~/e-Paper/RaspberryPi_JetsonNano/python', "
             "or set EPAPER_DRY_RUN=1 to run without a panel."
         )
 

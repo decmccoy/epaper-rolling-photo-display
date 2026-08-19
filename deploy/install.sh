@@ -13,7 +13,7 @@ SERVICE_USER="$(id -un)"
 
 echo "==> Installing apt packages (prebuilt for ARMv6, nothing compiles here)"
 sudo apt update
-sudo apt install -y rsync python3-venv python3-pil python3-spidev python3-lgpio
+sudo apt install -y rsync python3-venv python3-pil python3-spidev python3-lgpio python3-gpiozero
 
 echo "==> Enabling SPI"
 sudo raspi-config nonint do_spi 0
@@ -30,7 +30,15 @@ echo "==> Installing the Waveshare panel driver"
 if [ ! -d "$HOME/e-Paper" ]; then
     git clone --depth 1 https://github.com/waveshare/e-Paper.git "$HOME/e-Paper"
 fi
-"$REPO/.venv/bin/pip" install -q "$HOME/e-Paper/RaspberryPi_JetsonNano/python"
+# The upstream driver ships only a setup.py, so pip needs setuptools and wheel
+# present to build it properly instead of falling back to "setup.py install".
+"$REPO/.venv/bin/pip" install -q setuptools wheel
+
+# --no-deps because the driver's setup.py picks its dependencies from a stale
+# /sys/bus/platform/drivers/gpiomem-bcm2835 check that no longer matches this
+# kernel, so it asks for Jetson.GPIO. epdconfig.py greps /proc/cpuinfo instead
+# and correctly uses spidev + gpiozero, both of which come from apt above.
+"$REPO/.venv/bin/pip" install -q --use-pep517 --no-build-isolation --no-deps "$HOME/e-Paper/RaspberryPi_JetsonNano/python"
 
 if [ -s "$REPO/requirements-pi.txt" ]; then
     "$REPO/.venv/bin/pip" install -q -r "$REPO/requirements-pi.txt"
