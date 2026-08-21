@@ -6,10 +6,11 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=mom_dad
-WorkingDirectory=/home/mom_dad/epaper
+User=__EPAPER_USER__
+WorkingDirectory=__EPAPER_REPO__
+EnvironmentFile=-/etc/epaper/epaper.env
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/mom_dad/epaper/.venv/bin/python -m pi.main_loop
+ExecStart=__EPAPER_REPO__/.venv/bin/python -m pi.main_loop
 
 # The loop catches its own errors; this covers the case where it dies outright.
 Restart=always

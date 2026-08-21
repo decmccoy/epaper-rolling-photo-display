@@ -21,6 +21,17 @@ sudo raspi-config nonint do_spi 0
 echo "==> Creating data directories outside the git tree"
 mkdir -p "$DATA/photos" "$DATA/display"
 
+echo "==> Writing per-device settings (kept if it already exists)"
+sudo mkdir -p /etc/epaper
+if [ ! -f /etc/epaper/epaper.env ]; then
+    sed -e "s|^EPAPER_DATA=.*|EPAPER_DATA=$DATA|" \
+        -e "s|^EPAPER_FRAME_NAME=.*|EPAPER_FRAME_NAME=$(hostname)|" \
+        "$REPO/deploy/epaper.env.example" | sudo tee /etc/epaper/epaper.env > /dev/null
+    echo "    created /etc/epaper/epaper.env - review it before you walk away"
+else
+    echo "    /etc/epaper/epaper.env already exists, left alone"
+fi
+
 echo "==> Creating the virtualenv"
 if [ ! -d "$REPO/.venv" ]; then
     python3 -m venv --system-site-packages "$REPO/.venv"
@@ -45,7 +56,8 @@ if [ -s "$REPO/requirements-pi.txt" ]; then
 fi
 
 echo "==> Allowing the deploy script to restart the service without a password"
-echo "$SERVICE_USER ALL=(root) NOPASSWD: /bin/systemctl restart epaper" \
+SYSTEMCTL="$(command -v systemctl)"
+echo "$SERVICE_USER ALL=(root) NOPASSWD: $SYSTEMCTL restart epaper" \
     | sudo tee /etc/sudoers.d/epaper > /dev/null
 sudo chmod 0440 /etc/sudoers.d/epaper
 
@@ -63,13 +75,8 @@ EOF
 sudo systemctl restart systemd-journald
 
 echo "==> Installing systemd units"
-for unit in epaper.service epaper-update.service epaper-update.timer; do
-    sed -e "s|/home/mom_dad/epaper|$REPO|g" \
-        -e "s|^User=mom_dad$|User=$SERVICE_USER|" \
-        "$REPO/deploy/$unit" | sudo tee "/etc/systemd/system/$unit" > /dev/null
-done
+"$REPO/deploy/render-units.sh"
 
-sudo systemctl daemon-reload
 sudo systemctl enable --now epaper.service
 sudo systemctl enable --now epaper-update.timer
 

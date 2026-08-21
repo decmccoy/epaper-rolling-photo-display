@@ -5,9 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=mom_dad
-WorkingDirectory=/home/mom_dad/epaper
-ExecStart=/home/mom_dad/epaper/deploy/pull-deploy.sh
+User=__EPAPER_USER__
+WorkingDirectory=__EPAPER_REPO__
+EnvironmentFile=-/etc/epaper/epaper.env
+ExecStart=__EPAPER_REPO__/deploy/pull-deploy.sh
 
 # Drop any log below a warning
 LogLevelMax=notice

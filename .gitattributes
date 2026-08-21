@@ -2,3 +2,6 @@
 *.sh text eol=lf
 *.service text eol=lf
 *.timer text eol=lf
+
+# The env file example is read verbatim by systemd, so CRLF would end up in values.
+*.env.example text eol=lf

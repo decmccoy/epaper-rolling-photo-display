@@ -202,7 +202,8 @@ def run():
         # thread in tests, where the stop event is set directly instead.
         logger.debug("Not the main thread, skipping signal handler setup")
 
-    logger.info("Starting up, reading photos from %s", config.INCOMING_DIR)
+    logger.info("Starting up as %s, reading photos from %s",
+                config.FRAME_NAME, config.INCOMING_DIR)
 
     while not _stopping.is_set():
         try:

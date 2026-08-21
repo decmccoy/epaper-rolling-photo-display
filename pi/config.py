@@ -6,6 +6,7 @@ layout created by the re-imaging runbook: everything under ~/epaper.
 """
 
 import os
+import socket
 from pathlib import Path
 
 
@@ -19,6 +20,9 @@ def _env_int(name, default):
     except (KeyError, ValueError):
         return default
 
+
+# A label for this frame, so two frames' journals are distinguishable.
+FRAME_NAME = os.environ.get("EPAPER_FRAME_NAME", "") or socket.gethostname()
 
 # Photos and other state live OUTSIDE the git working tree on purpose. A deploy
 # does 'git reset --hard' on ~/epaper, so anything kept in there is one bad
