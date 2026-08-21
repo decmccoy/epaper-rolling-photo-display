@@ -6,7 +6,21 @@ This project displays photos on an Epaper photo frame using a connected Raspberr
 This repo holds both the onboard software for the Pi and the script to convert photos on a
 computer and send them to the Pi over the network.
 
-Photos are converted on a computer and only finished bitmaps are sent to the Pi.
+Photos are converted on a computer and only finished bitmaps are sent to a frame.
+
+## Relevant values
+
+| Value | Set where | Example | Notes |
+| --- | --- | --- | --- |
+| Hostname | Raspberry Pi Imager | `frame-lounge` | How you reach it: `frame-lounge.local` |
+| Username | Raspberry Pi Imager | `darcy` | The systemd units run as this user |
+| Wifi SSID | Imager, or `deploy/add-wifi.sh` later | `HouseWifi` | 2.4&nbsp;GHz only on a Zero W |
+| Frame name | `EPAPER_FRAME_NAME` in `/etc/epaper/epaper.env` | `living-room` | Logged at startup so two journals are distinguishable. Defaults to the hostname |
+| Data path | `EPAPER_DATA` in `/etc/epaper/epaper.env` | `/home/darcy/epaper-data` | Photos and display state. Must match the sender's `remote_photos_path` plus `/photos` |
+
+`/etc/epaper/epaper.env` sits outside the git checkout on purpose, so a deploy's
+`git reset --hard` can never wipe it. `deploy/install.sh` creates it from
+`deploy/epaper.env.example` on the first run and leaves it alone on every run after that.
 
 ## Getting Started
 
@@ -29,9 +43,16 @@ Onboard Pi files:
 │   ├── install.sh          # one-time setup on a fresh image
 │   ├── epaper.service      # runs the display loop
 │   ├── epaper-update.*     # timer that pulls updates from GitHub
-│   └── pull-deploy.sh      # pulls from GitHub and restarts the frame
+│   ├── pull-deploy.sh      # pulls from GitHub and restarts the frame
+│   ├── render-units.sh     # fills this frame's user and path into the units
+│   ├── epaper.env.example  # template for /etc/epaper/epaper.env
+│   └── add-wifi.sh         # adds a wifi network to a running frame
 └── requirements-pi.txt
 ```
+
+The two `.service` files are templates, not finished units. They carry
+`__EPAPER_USER__` and `__EPAPER_REPO__` placeholders that `render-units.sh` fills in with
+this frame's real values before installing them to `/etc/systemd/system`.
 
 Image transfer script files:
 
@@ -39,7 +60,8 @@ Image transfer script files:
 ├── sender/
 │   ├── load_photos.py      # CLI entry point
 │   ├── conversion.py       # HEIC/JPG/PNG -> 7-colour bitmap
-│   └── transfer.py         # SFTP mirror to the Pi
+│   └── transfer.py         # SFTP mirror to a frame
+├── EXAMPLE_frames.json     # one entry per frame
 ├── EXAMPLE_raspberry_pi_info.json
 └── requirements-sender.txt
 ```
@@ -116,15 +138,22 @@ ssh <username>@<hostname>.local
 Or, using PuTTY, enter the host name of the Pi and click `Open`:<br/>
 ![Putty Configuration](docs/assets/putty_configuration.png)<br/>
 
-To add another wifi network, connect over the cable or the current network and run:
+#### Adding a wifi network later
+
+There are two separate cases, and only the second one involves this repo:
+
+- **At imaging time.** The imager's wifi fields are per-card, so a new frame simply gets its
+  own SSID typed in. Nothing here is involved.
+- **On a frame that is already running.** Moving a frame to a different network. Connect over the cable or the current network and run:
 
 ```bash
-sudo nmcli connection add type wifi con-name <name> ifname wlan0 \
-  ssid "<SSID>" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "<PASSWORD>"
-sudo nmcli connection modify <name> connection.autoconnect yes \
-  connection.autoconnect-priority 10
-nmcli connection show
+~/epaper/deploy/add-wifi.sh "<SSID>"
 ```
+
+It prompts for the password rather than taking it as an argument, so the password never
+lands in `~/.bash_history` or in the process list. Set `WIFI_HIDDEN=1` for a network that
+does not broadcast its SSID, or `WIFI_PRIORITY=<n>` to change which network wins when both
+are in range (higher wins; the default is 10).
 
 > The Zero W radio is 2.4&nbsp;GHz only, so the network has to broadcast a 2.4&nbsp;GHz band.
 
@@ -141,7 +170,23 @@ git clone https://github.com/decmccoy/epaper-rolling-photo-display.git ~/epaper
 > The Lite image does not ship `git`, so it has to be installed before the clone.
 
 `install.sh` enables SPI, installs the apt packages, creates the virtualenv, fetches the
-Waveshare driver, and enables both systemd units. It is safe to re-run.
+Waveshare driver, writes this frame's settings file, and renders and enables both systemd
+units for the current user. It is safe to re-run.
+
+Then review this frame's settings and restart to pick them up:
+
+```bash
+sudo nano /etc/epaper/epaper.env
+sudo systemctl restart epaper
+```
+
+`install.sh` fills in `EPAPER_FRAME_NAME` from the hostname and `EPAPER_DATA` from where it
+just created the data directories, so the file is already correct as written. The rest —
+quiet hours, seconds per photo, the branch this frame tracks — is worth a look while you
+are still sitting next to it. Every knob is documented in the file itself.
+
+> A re-run of `install.sh` never overwrites an existing `/etc/epaper/epaper.env`, so a
+> frame's settings survive a reinstall.
 
 Check that it worked and is running:
 
@@ -154,8 +199,14 @@ To turn on the debug pi logging:
 
 ```bash
 sudo systemctl stop epaper
+set -a; . /etc/epaper/epaper.env; set +a
 EPAPER_DEBUG=1 ~/epaper/.venv/bin/python -m pi.main_loop
 ```
+
+> Only systemd reads `/etc/epaper/epaper.env`, so a run started by hand would otherwise use
+> the built-in defaults rather than this frame's settings — including a different photo
+> folder. Sourcing it first is what makes the debug run match what the service does.
+> `EPAPER_DEBUG=1` on the command line still wins over anything in the file.
 
 ### Executing the script
 
@@ -165,7 +216,7 @@ Install the desktop dependencies:
 pip install -r requirements-sender.txt
 ```
 
-- Create and fill in the `raspberry_pi_info.json` config file
+- Copy `EXAMPLE_frames.json` to `frames.json` and fill in one entry per frame
 - Download all the photos as a zip file
 - Run the following command in the base directory:
 
@@ -173,26 +224,112 @@ pip install -r requirements-sender.txt
 python -m sender.load_photos --zip "path/to/album.zip"
 ```
 
+`frames.json` names each frame, and those names are what `--target` matches:
+
+```json
+{
+  "targets": {
+    "living-room": {
+      "host_name": "frame-lounge.local",
+      "username": "darcy",
+      "key_filename": "~/.ssh/id_ed25519",
+      "remote_photos_path": "/home/darcy/epaper-data/photos"
+    },
+    "parents": {
+      "host_name": "frame-parents.local",
+      "username": "mom_dad",
+      "key_filename": "~/.ssh/id_ed25519",
+      "remote_photos_path": "/home/mom_dad/epaper-data/photos"
+    }
+  }
+}
+```
+
+`remote_photos_path` is that frame's `EPAPER_DATA` plus `/photos`. Get it wrong and the
+sender uploads into a folder nothing is watching, so it warns if it had to create the
+folder rather than finding it already there.
+
+> `frames.json` is gitignored, as is anything named `*.secret.json` or containing
+> `raspberry_pi`. Prefer `key_filename` over `password` so the file holds no secret at all.
+
 | Flag | Effect |
 | --- | --- |
 | `--zip` | The exported album zip. Required. |
 | `--album` | Subfolder inside the zip. Omit to use everything. |
+| `--target` | Frame to send to, by name. Repeatable. Omit to send to all of them. |
 | `--no-send` | Convert only. Use this to eyeball the bitmaps first. |
 | `--keep-working` | Leave the intermediate JPEGs in place for inspection. |
 | `--config` | Point at a different settings file. |
 | `--verbose` | Log every file, not just a summary per photo. |
 
-Only changed photos are uploaded, and photos removed from the album are deleted from the Pi.
+Photos are converted once and then sent to each frame in turn. To load one frame only:
+
+```bash
+python -m sender.load_photos --zip "path/to/album.zip" --target living-room
+```
+
+Each frame is reported separately and the command exits non-zero if any of them failed:
+
+```text
+living-room: 12 uploaded, 0 deleted, 88 already up to date
+parents:     FAILED - timed out connecting to frame-parents.local
+```
+
+Only changed photos are uploaded, and photos removed from the album are deleted from the
+frame.
+
+> An older single-frame `raspberry_pi_info.json` still works as-is, with no flags — it is
+> used automatically when no `frames.json` exists, and shows up in the output as `default`.
+
+## Adding a frame
+
+A second frame is the same steps as the first, with different values from the
+[per-frame table](#values-you-choose-per-frame). Nothing in the repo needs editing.
+
+1. **Image a card** with its own hostname, username and wifi, and paste in the same public
+   key. Enable USB gadget mode before ejecting it, exactly as above.
+2. **Clone and install** on the new frame:
+
+    ```bash
+    sudo apt update && sudo apt install -y git
+    git clone https://github.com/decmccoy/epaper-rolling-photo-display.git ~/epaper
+    ~/epaper/deploy/install.sh
+    ```
+
+3. **Set its identity** in `/etc/epaper/epaper.env` — at minimum `EPAPER_FRAME_NAME`, so its
+   journal is distinguishable from the other frame's. Then `sudo systemctl restart epaper`.
+4. **Add it to `frames.json`** on the computer as another entry under `targets`, with its
+   hostname, username and `remote_photos_path`.
+5. **Check you can reach it** — `ssh <username>@<hostname>.local` should let you straight in
+   without a password prompt. If it asks for one, the key did not make it onto the card.
+6. **Send it photos**, on its own first:
+
+    ```bash
+    python -m sender.load_photos --zip "path/to/album.zip" --target <name>
+    ```
+
+Both frames pull from the same GitHub repo on their own hourly timer, so a code change
+reaches all of them without anything extra. A frame can be pinned to a different branch
+with `EPAPER_BRANCH` in its env file, which is the easy way to try a change on one frame
+before it reaches the other.
 
 ## Deploying code changes
 
-The Pi checks GitHub every hour and restarts itself if anything changed.
+Each frame checks GitHub every hour and restarts itself if anything changed.
 
 To force an immediate update, or to check on it:
 
 ```bash
 sudo systemctl start epaper-update.service
 journalctl -u epaper-update -n 20
+```
+
+The hourly deploy updates code only. A change to the systemd units themselves is not picked up. After changing a
+unit, install it by hand on each frame:
+
+```bash
+~/epaper/deploy/render-units.sh
+sudo systemctl restart epaper
 ```
 
 ## Development
@@ -204,8 +341,16 @@ EPAPER_DRY_RUN=1 EPAPER_DISPLAY_SECONDS=2 python -m pi.main_loop
 ```
 
 Every setting in `pi/config.py` has an environment variable override, listed in that file.
-Photos and display state live in `~/epaper-data`, deliberately outside the git working tree
-so that a deploy's `git reset --hard` can never delete them.
+On a real frame the ones that vary per device are set in `/etc/epaper/epaper.env`; the rest
+keep their defaults. Photos and display state live in `~/epaper-data`, deliberately outside
+the git working tree so that a deploy's `git reset --hard` can never delete them.
+
+The sender converts without touching a frame, which is the quickest way to check a
+conversion change:
+
+```bash
+python -m sender.load_photos --zip "path/to/album.zip" --no-send --keep-working
+```
 
 ## Authors
 
