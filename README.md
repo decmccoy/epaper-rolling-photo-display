@@ -61,8 +61,7 @@ Image transfer script files:
 │   ├── load_photos.py      # CLI entry point
 │   ├── conversion.py       # HEIC/JPG/PNG -> 7-colour bitmap
 │   └── transfer.py         # SFTP mirror to a frame
-├── EXAMPLE_frames.json     # one entry per frame
-├── EXAMPLE_raspberry_pi_info.json
+├── frames.json     # one entry per frame
 └── requirements-sender.txt
 ```
 
@@ -182,11 +181,10 @@ sudo systemctl restart epaper
 
 `install.sh` fills in `EPAPER_FRAME_NAME` from the hostname and `EPAPER_DATA` from where it
 just created the data directories, so the file is already correct as written. The rest —
-quiet hours, seconds per photo, the branch this frame tracks — is worth a look while you
+quiet hours, seconds per photo — is worth a look while you
 are still sitting next to it. Every knob is documented in the file itself.
 
-> A re-run of `install.sh` never overwrites an existing `/etc/epaper/epaper.env`, so a
-> frame's settings survive a reinstall.
+> A re-run of `install.sh` never overwrites an existing `/etc/epaper/epaper.env`
 
 Check that it worked and is running:
 
@@ -245,12 +243,7 @@ python -m sender.load_photos --zip "path/to/album.zip"
 }
 ```
 
-`remote_photos_path` is that frame's `EPAPER_DATA` plus `/photos`. Get it wrong and the
-sender uploads into a folder nothing is watching, so it warns if it had to create the
-folder rather than finding it already there.
-
-> `frames.json` is gitignored, as is anything named `*.secret.json` or containing
-> `raspberry_pi`. Prefer `key_filename` over `password` so the file holds no secret at all.
+`remote_photos_path` is that frame's `EPAPER_DATA` plus `/photos`.
 
 | Flag | Effect |
 | --- | --- |
@@ -278,13 +271,7 @@ parents:     FAILED - timed out connecting to frame-parents.local
 Only changed photos are uploaded, and photos removed from the album are deleted from the
 frame.
 
-> An older single-frame `raspberry_pi_info.json` still works as-is, with no flags — it is
-> used automatically when no `frames.json` exists, and shows up in the output as `default`.
-
 ## Adding a frame
-
-A second frame is the same steps as the first, with different values from the
-[per-frame table](#values-you-choose-per-frame). Nothing in the repo needs editing.
 
 1. **Image a card** with its own hostname, username and wifi, and paste in the same public
    key. Enable USB gadget mode before ejecting it, exactly as above.
@@ -307,11 +294,6 @@ A second frame is the same steps as the first, with different values from the
     ```bash
     python -m sender.load_photos --zip "path/to/album.zip" --target <name>
     ```
-
-Both frames pull from the same GitHub repo on their own hourly timer, so a code change
-reaches all of them without anything extra. A frame can be pinned to a different branch
-with `EPAPER_BRANCH` in its env file, which is the easy way to try a change on one frame
-before it reaches the other.
 
 ## Deploying code changes
 

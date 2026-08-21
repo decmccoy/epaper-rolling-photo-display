@@ -15,12 +15,10 @@ epaper-data/
 # Files used by script
 *.zip
 
-# Frame connection settings. Deny by default; these can contain passwords.
+# Frame connection settings
 *raspberry_pi*.json
-frames.json
 *.secret.json
-!EXAMPLE_raspberry_pi_info.json
-!EXAMPLE_frames.json
+frames.json
 
 # PyCharm
 .idea/

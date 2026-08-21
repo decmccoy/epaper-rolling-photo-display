@@ -22,22 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_WORKING = REPO_ROOT / "working"
 
 
-def _default_config():
-    """
-    Pick the config file to use when --config is not given.
-
-    Prefers the multi-frame frames.json and falls back to the original
-    single-frame file, so a setup that predates named targets keeps working
-    with no flags at all.
-    """
-    frames = REPO_ROOT / "frames.json"
-    legacy = REPO_ROOT / "raspberry_pi_info.json"
-    if not frames.exists() and legacy.exists():
-        return legacy
-    return frames
-
-
-DEFAULT_CONFIG = _default_config()
+DEFAULT_CONFIG = REPO_ROOT / "frames.json"
 
 PANEL_WIDTH = 600
 PANEL_HEIGHT = 448

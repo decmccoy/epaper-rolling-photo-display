@@ -33,9 +33,6 @@ def _validate_settings(settings, where):
     """
     Check one frame's settings for the keys a connection needs.
 
-    Both config shapes go through here so a named target and a legacy
-    single-frame file fail in exactly the same way.
-
     Parameters:
         settings (dict): One frame's connection settings.
         where (str): How to describe the source in an error message.
@@ -58,29 +55,12 @@ def _validate_settings(settings, where):
     return settings
 
 
-def read_pi_config(config_path):
-    """
-    Load a single frame's connection settings.
-
-    Expected keys: host_name, username, and then either key_filename (preferred)
-    or password. Optional: port, remote_photos_path.
-
-    Parameters:
-        config_path (Path): Path to the JSON config file.
-
-    Returns:
-        dict: The parsed settings.
-    """
-    return _validate_settings(_load_config_file(config_path), str(config_path))
-
-
 def read_targets(config_path, wanted=None):
     """
     Load one or more frames from a config file.
 
-    Accepts either the single-frame object (host_name at the top level) or a
-    {"targets": {name: {...}}} file. Returns a dict of name -> settings so the
-    rest of the pipeline never has to care which shape was on disk.
+    The file is a {"targets": {name: {...}}} object. Returns a dict of
+    name -> settings, keyed by the names used by --target.
 
     Parameters:
         config_path (Path): Path to the JSON config file.
@@ -95,18 +75,12 @@ def read_targets(config_path, wanted=None):
     if not isinstance(config, dict):
         raise ValueError(f"{config_path} should contain a JSON object")
 
-    # A top-level host_name means this is the original one-frame file. Give it a
-    # name so callers can treat both shapes identically.
-    if config.get("host_name"):
-        targets = {"default": _validate_settings(config, str(config_path))}
-    else:
-        declared = config.get("targets")
-        if not isinstance(declared, dict) or not declared:
-            raise ValueError(
-                f"{config_path} has no frames in it. It needs either a top-level "
-                f"'host_name' or a 'targets' object. See EXAMPLE_frames.json."
-            )
-        targets = declared
+    targets = config.get("targets")
+    if not isinstance(targets, dict) or not targets:
+        raise ValueError(
+            f"{config_path} has no frames in it. It needs a 'targets' object "
+            f"with one entry per frame. See EXAMPLE_frames.json."
+        )
 
     if wanted and "all" not in wanted:
         chosen = {}
@@ -136,7 +110,7 @@ def connect(settings):
     configured.
 
     Parameters:
-        settings (dict): As returned by read_pi_config.
+        settings (dict): One frame's settings, as returned by read_targets.
 
     Returns:
         paramiko.SSHClient: A connected client. The caller must close it.
