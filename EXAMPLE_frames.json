@@ -1,0 +1,17 @@
+{
+  "targets": {
+    "living-room": {
+      "host_name": "frame-lounge.local",
+      "username": "darcy",
+      "key_filename": "~/.ssh/id_ed25519",
+      "remote_photos_path": "/home/darcy/epaper-data/photos"
+    },
+    "parents": {
+      "host_name": "frame-parents.local",
+      "username": "mom_dad",
+      "key_filename": "~/.ssh/id_ed25519",
+      "remote_photos_path": "/home/mom_dad/epaper-data/photos"
+    }
+  },
+  "_comment": "Copy this to frames.json and fill it in, one entry per frame. Names are yours to pick; they are what --target matches. 'remote_photos_path' must be EPAPER_DATA from that frame's /etc/epaper/epaper.env plus /photos. Prefer key_filename over a password; if you must use one, replace key_filename with \"password\": \"...\". frames.json is gitignored."
+}

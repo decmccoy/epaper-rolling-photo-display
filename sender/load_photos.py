@@ -1,9 +1,11 @@
-"""Prepare an album of photos and send the results to the Pi.
+"""Prepare an album of photos and send the results to every frame.
 
     python -m sender.load_photos --zip "C:\\path\\to\\album.zip"
+    python -m sender.load_photos --zip "album.zip" --target living-room
 
-Run with --no-send to convert only, which is the quickest way to eyeball the
-dithered bitmaps before anything touches the frame.
+Photos are converted once and then sent to each frame in turn, since every frame
+uses the same panel. Run with --no-send to convert only, which is the quickest
+way to eyeball the dithered bitmaps before anything touches a frame.
 """
 
 import argparse
@@ -17,8 +19,25 @@ from sender import conversion, transfer
 logger = logging.getLogger("sender")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_CONFIG = REPO_ROOT / "raspberry_pi_info.json"
 DEFAULT_WORKING = REPO_ROOT / "working"
+
+
+def _default_config():
+    """
+    Pick the config file to use when --config is not given.
+
+    Prefers the multi-frame frames.json and falls back to the original
+    single-frame file, so a setup that predates named targets keeps working
+    with no flags at all.
+    """
+    frames = REPO_ROOT / "frames.json"
+    legacy = REPO_ROOT / "raspberry_pi_info.json"
+    if not frames.exists() and legacy.exists():
+        return legacy
+    return frames
+
+
+DEFAULT_CONFIG = _default_config()
 
 PANEL_WIDTH = 600
 PANEL_HEIGHT = 448
@@ -38,7 +57,12 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--config", dest="config_path", type=Path, default=DEFAULT_CONFIG,
-        help=f"Pi connection settings. Default: {DEFAULT_CONFIG.name}",
+        help=f"Frame connection settings. Default: {DEFAULT_CONFIG.name}",
+    )
+    parser.add_argument(
+        "--target", dest="targets", action="append", metavar="NAME",
+        help="Frame to send to, by its name in the config file. Repeatable. "
+             "Omit, or pass 'all', to send to every frame in the file.",
     )
     parser.add_argument(
         "--working", dest="working_dir", type=Path, default=DEFAULT_WORKING,
@@ -72,15 +96,17 @@ def main(argv=None):
         logger.error("No zip file at %s", args.zip_path)
         return 1
 
-    # Read the config before doing any slow work, so a typo in the hostname
-    # fails in a second rather than after converting two hundred photos.
-    settings = None
+    # Read the config before doing any slow work, so a typo in a hostname or an
+    # unknown --target fails in a second rather than after converting two
+    # hundred photos.
+    targets = {}
     if not args.no_send:
         try:
-            settings = transfer.read_pi_config(args.config_path)
+            targets = transfer.read_targets(args.config_path, args.targets)
         except (FileNotFoundError, ValueError) as error:
             logger.error("%s", error)
             return 1
+        logger.info("Sending to %d frame(s): %s", len(targets), ", ".join(targets))
 
     working_dir = args.working_dir
     if working_dir.exists():
@@ -107,25 +133,41 @@ def main(argv=None):
             logger.info("--no-send given, stopping before transfer")
             return 0
 
-        # Must match EPAPER_INCOMING on the Pi (see pi/config.py). Photos live
-        # outside the git checkout so a deploy cannot delete them.
-        remote_dir = settings.get(
-            "remote_photos_path", f"/home/{settings['username']}/epaper-data/photos"
-        )
-
-        client = transfer.connect(settings)
-        try:
-            uploaded, deleted, unchanged = transfer.mirror_to_pi(
-                client, bitmap_dir, remote_dir
+        results = []
+        for name, settings in targets.items():
+            # Must match EPAPER_INCOMING on the frame (see pi/config.py). Photos
+            # live outside the git checkout so a deploy cannot delete them.
+            remote_dir = settings.get(
+                "remote_photos_path", f"/home/{settings['username']}/epaper-data/photos"
             )
-        finally:
-            client.close()
 
-        logger.info(
-            "Done. %d uploaded, %d deleted, %d already up to date.",
-            uploaded, deleted, unchanged,
-        )
-        return 0
+            try:
+                client = transfer.connect(settings)
+                try:
+                    uploaded, deleted, unchanged = transfer.mirror_to_pi(
+                        client, bitmap_dir, remote_dir
+                    )
+                finally:
+                    client.close()
+            except Exception as error:
+                # Deliberately broad: a frame that is unplugged, asleep or on a
+                # different network must not stop the others getting photos.
+                # Every failure is reported and turns into a non-zero exit below.
+                logger.error("%s: %s", name, error)
+                results.append((name, False, f"FAILED - {error}"))
+                continue
+
+            results.append((name, True, (
+                f"{uploaded} uploaded, {deleted} deleted, "
+                f"{unchanged} already up to date"
+            )))
+
+        logger.info("Done.")
+        label_width = max((len(name) for name, _, _ in results), default=0) + 1
+        for name, _, summary in results:
+            logger.info("  %-*s %s", label_width, f"{name}:", summary)
+
+        return 0 if all(ok for _, ok, _ in results) else 1
 
     finally:
         if args.keep_working:

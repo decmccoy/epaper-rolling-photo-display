@@ -16,9 +16,51 @@ import paramiko
 logger = logging.getLogger(__name__)
 
 
+def _load_config_file(config_path):
+    """Read and parse a config file, with a message that says what to copy."""
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"No config at {config_path}. Copy EXAMPLE_frames.json to "
+            f"{config_path.name} and fill it in."
+        )
+
+    with config_path.open("r", encoding="utf-8") as config_file:
+        return json.load(config_file)
+
+
+def _validate_settings(settings, where):
+    """
+    Check one frame's settings for the keys a connection needs.
+
+    Both config shapes go through here so a named target and a legacy
+    single-frame file fail in exactly the same way.
+
+    Parameters:
+        settings (dict): One frame's connection settings.
+        where (str): How to describe the source in an error message.
+
+    Returns:
+        dict: The same settings, once they are known to be usable.
+    """
+    if not isinstance(settings, dict):
+        raise ValueError(f"{where} is not a set of connection settings")
+
+    for required in ("host_name", "username"):
+        if not settings.get(required):
+            raise ValueError(f"'{required}' is missing from {where}")
+
+    if not settings.get("key_filename") and not settings.get("password"):
+        raise ValueError(
+            f"{where} needs either 'key_filename' (preferred) or 'password'"
+        )
+
+    return settings
+
+
 def read_pi_config(config_path):
     """
-    Load the Pi connection settings.
+    Load a single frame's connection settings.
 
     Expected keys: host_name, username, and then either key_filename (preferred)
     or password. Optional: port, remote_photos_path.
@@ -29,26 +71,61 @@ def read_pi_config(config_path):
     Returns:
         dict: The parsed settings.
     """
+    return _validate_settings(_load_config_file(config_path), str(config_path))
+
+
+def read_targets(config_path, wanted=None):
+    """
+    Load one or more frames from a config file.
+
+    Accepts either the single-frame object (host_name at the top level) or a
+    {"targets": {name: {...}}} file. Returns a dict of name -> settings so the
+    rest of the pipeline never has to care which shape was on disk.
+
+    Parameters:
+        config_path (Path): Path to the JSON config file.
+        wanted (list[str]): Names to select. None or ["all"] means every target.
+
+    Returns:
+        dict[str, dict]: Selected frames, keyed by name.
+    """
     config_path = Path(config_path)
-    if not config_path.exists():
-        raise FileNotFoundError(
-            f"No config at {config_path}. Copy EXAMPLE_raspberry_pi_info.json to "
-            f"{config_path.name} and fill it in."
-        )
+    config = _load_config_file(config_path)
 
-    with config_path.open("r", encoding="utf-8") as config_file:
-        settings = json.load(config_file)
+    if not isinstance(config, dict):
+        raise ValueError(f"{config_path} should contain a JSON object")
 
-    for required in ("host_name", "username"):
-        if not settings.get(required):
-            raise ValueError(f"'{required}' is missing from {config_path}")
+    # A top-level host_name means this is the original one-frame file. Give it a
+    # name so callers can treat both shapes identically.
+    if config.get("host_name"):
+        targets = {"default": _validate_settings(config, str(config_path))}
+    else:
+        declared = config.get("targets")
+        if not isinstance(declared, dict) or not declared:
+            raise ValueError(
+                f"{config_path} has no frames in it. It needs either a top-level "
+                f"'host_name' or a 'targets' object. See EXAMPLE_frames.json."
+            )
+        targets = declared
 
-    if not settings.get("key_filename") and not settings.get("password"):
-        raise ValueError(
-            f"{config_path} needs either 'key_filename' (preferred) or 'password'"
-        )
+    if wanted and "all" not in wanted:
+        chosen = {}
+        for name in wanted:
+            if name not in targets:
+                available = ", ".join(sorted(targets)) or "(none)"
+                raise ValueError(
+                    f"No frame named '{name}' in {config_path}. "
+                    f"Frames in that file: {available}"
+                )
+            chosen[name] = targets[name]
+        targets = chosen
 
-    return settings
+    # Validate everything selected before any slow work starts, so a typo in one
+    # frame's settings does not surface after the other frame is already loaded.
+    return {
+        name: _validate_settings(settings, f"frame '{name}' in {config_path}")
+        for name, settings in targets.items()
+    }
 
 
 def connect(settings):
@@ -84,6 +161,7 @@ def connect(settings):
 
 def _ensure_remote_dir(sftp, remote_dir):
     """Create a remote directory and any missing parents."""
+    created = False
     built = ""
     for part in (segment for segment in str(remote_dir).split("/") if segment):
         built = f"{built}/{part}"
@@ -91,6 +169,17 @@ def _ensure_remote_dir(sftp, remote_dir):
             sftp.stat(built)
         except IOError:
             sftp.mkdir(built)
+            created = True
+
+    # The frame reads EPAPER_DATA from /etc/epaper/epaper.env, which the sender
+    # cannot see. If the photo folder was not already there, the frame is almost
+    # certainly watching a different one and these uploads will go nowhere.
+    if created:
+        logger.warning(
+            "Created %s - it did not exist. Check EPAPER_DATA in "
+            "/etc/epaper/epaper.env on that frame matches this path.",
+            remote_dir,
+        )
 
 
 def _put_atomically(sftp, local_path, remote_path):
