@@ -27,7 +27,7 @@ if [ ! -f /etc/epaper/epaper.env ]; then
     sed -e "s|^EPAPER_DATA=.*|EPAPER_DATA=$DATA|" \
         -e "s|^EPAPER_FRAME_NAME=.*|EPAPER_FRAME_NAME=$(hostname)|" \
         "$REPO/deploy/epaper.env.example" | sudo tee /etc/epaper/epaper.env > /dev/null
-    echo "    created /etc/epaper/epaper.env - review it before you walk away"
+    echo "    created /etc/epaper/epaper.env (review is heavily recommended)"
 else
     echo "    /etc/epaper/epaper.env already exists, left alone"
 fi

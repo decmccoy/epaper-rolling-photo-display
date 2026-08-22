@@ -1,9 +1,9 @@
-"""Ship finished bitmaps to the Pi over SFTP.
+"""Ship finished bitmaps to a frame over SFTP.
 
-This mirrors a local folder onto the Pi: files that are missing or a different
-size are uploaded, files the Pi has but the album no longer contains are
-deleted. Re-running after adding one photo therefore transfers one photo, not
-the whole album, which matters on a Zero W's SD card.
+This mirrors a local folder onto the frame: bitmaps whose names the frame does
+not have are uploaded, names the album no longer contains are deleted.
+Re-running after adding one photo therefore transfers one photo, not the whole
+album, which matters on a Zero W's SD card.
 """
 
 import json
@@ -171,14 +171,19 @@ def _put_atomically(sftp, local_path, remote_path):
         sftp.rename(temporary, remote_path)
 
 
-def mirror_to_pi(client, local_dir, remote_dir):
+def mirror_to_pi(client, local_dir, remote_dir, force=False):
     """
-    Make a folder on the Pi match a local folder of bitmaps.
+    Make a folder on the frame match a local folder of bitmaps.
+
+    Bitmaps are matched by filename alone. The cost is that a photo replaced under a name the frame already has is not
+    noticed. Pass force=True after changing anything in conversion.py, since
+    that changes the content of every bitmap while leaving the names alone.
 
     Parameters:
         client (paramiko.SSHClient): An already connected client.
         local_dir (Path): Folder of finished .bmp files.
-        remote_dir (str): Destination folder on the Pi, as a POSIX path.
+        remote_dir (str): Destination folder on the frame, as a POSIX path.
+        force (bool): Re-upload every bitmap, even ones already there by name.
 
     Returns:
         tuple[int, int, int]: Counts of uploaded, deleted and unchanged files.
@@ -194,33 +199,26 @@ def mirror_to_pi(client, local_dir, remote_dir):
     try:
         _ensure_remote_dir(sftp, remote_dir)
 
-        remote_files = {}
-        for entry in sftp.listdir_attr(remote_dir):
-            if not stat.S_ISDIR(entry.st_mode) and entry.filename.lower().endswith(".bmp"):
-                remote_files[entry.filename] = (entry.st_size, int(entry.st_mtime))
+        remote_names = {
+            entry.filename
+            for entry in sftp.listdir_attr(remote_dir)
+            if not stat.S_ISDIR(entry.st_mode)
+            and entry.filename.lower().endswith(".bmp")
+        }
 
         uploaded = deleted = unchanged = 0
 
-        for name in sorted(set(remote_files) - set(local_files)):
+        for name in sorted(remote_names - set(local_files)):
             sftp.remove(f"{remote_dir}/{name}")
-            logger.info("Deleted %s from the Pi", name)
+            logger.info("Deleted %s from the frame", name)
             deleted += 1
 
         for name, path in sorted(local_files.items()):
-            local_stat = path.stat()
-            local_fingerprint = (local_stat.st_size, int(local_stat.st_mtime))
-
-            # Modification time is part of the fingerprint because every bitmap
-            # for this panel is exactly the same size, so size alone would never
-            # detect a photo replaced under an existing name.
-            if remote_files.get(name) == local_fingerprint:
+            if name in remote_names and not force:
                 unchanged += 1
                 continue
 
-            remote_path = f"{remote_dir}/{name}"
-            _put_atomically(sftp, path, remote_path)
-            # Stamp the remote copy so the next run recognises it as unchanged.
-            sftp.utime(remote_path, (int(local_stat.st_atime), int(local_stat.st_mtime)))
+            _put_atomically(sftp, path, f"{remote_dir}/{name}")
             logger.info("Uploaded %s", name)
             uploaded += 1
 

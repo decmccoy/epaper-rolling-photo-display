@@ -251,6 +251,7 @@ python -m sender.load_photos --zip "path/to/album.zip"
 | `--album` | Subfolder inside the zip. Omit to use everything. |
 | `--target` | Frame to send to, by name. Repeatable. Omit to send to all of them. |
 | `--no-send` | Convert only. Use this to eyeball the bitmaps first. |
+| `--force` | Re-upload every photo, not just the ones the frame is missing. |
 | `--keep-working` | Leave the intermediate JPEGs in place for inspection. |
 | `--config` | Point at a different settings file. |
 | `--verbose` | Log every file, not just a summary per photo. |
@@ -264,12 +265,19 @@ python -m sender.load_photos --zip "path/to/album.zip" --target living-room
 Each frame is reported separately and the command exits non-zero if any of them failed:
 
 ```text
-living-room: 12 uploaded, 0 deleted, 88 already up to date
+living-room: 12 uploaded, 0 deleted, 88 already there
 parents:     FAILED - timed out connecting to frame-parents.local
 ```
 
-Only changed photos are uploaded, and photos removed from the album are deleted from the
-frame.
+Photos are matched **by filename**. A bitmap whose name the frame already has is left alone,
+and a name the album no longer contains is deleted from the frame.
+
+> The one thing this cannot see is a photo whose **content** changed while its **name** stayed
+> the same. That is rare for photos, but it is guaranteed after any edit to `conversion.py`. Send with `--force` once after such a change:
+>
+> ```bash
+> python -m sender.load_photos --zip "path/to/album.zip" --force
+> ```
 
 ## Adding a frame
 

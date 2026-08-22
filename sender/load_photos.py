@@ -30,7 +30,7 @@ PANEL_HEIGHT = 448
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
-        description="Convert an album of photos to e-paper bitmaps and send them to the Pi.",
+        description="Convert an album of photos to e-paper bitmaps and send them to your frames.",
     )
     parser.add_argument(
         "--zip", dest="zip_path", type=Path, required=True,
@@ -55,7 +55,13 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--no-send", action="store_true",
-        help="Convert only, do not connect to the Pi.",
+        help="Convert only, do not connect to a frame.",
+    )
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Re-upload every photo, including ones the frame already has by "
+             "name. Needed after a change to conversion.py, which rewrites "
+             "every bitmap without changing any filename.",
     )
     parser.add_argument(
         "--keep-working", action="store_true",
@@ -130,7 +136,7 @@ def main(argv=None):
                 client = transfer.connect(settings)
                 try:
                     uploaded, deleted, unchanged = transfer.mirror_to_pi(
-                        client, bitmap_dir, remote_dir
+                        client, bitmap_dir, remote_dir, force=args.force
                     )
                 finally:
                     client.close()
@@ -144,7 +150,7 @@ def main(argv=None):
 
             results.append((name, True, (
                 f"{uploaded} uploaded, {deleted} deleted, "
-                f"{unchanged} already up to date"
+                f"{unchanged} already there"
             )))
 
         logger.info("Done.")
