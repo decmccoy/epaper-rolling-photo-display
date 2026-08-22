@@ -8,19 +8,20 @@ computer and send them to the Pi over the network.
 
 Photos are converted on a computer and only finished bitmaps are sent to a frame.
 
-## Relevant values
+## Table of Contents
 
-| Value | Set where | Example | Notes |
-| --- | --- | --- | --- |
-| Hostname | Raspberry Pi Imager | `frame-lounge` | How you reach it: `frame-lounge.local` |
-| Username | Raspberry Pi Imager | `darcy` | The systemd units run as this user |
-| Wifi SSID | Imager, or `deploy/add-wifi.sh` later | `HouseWifi` | 2.4&nbsp;GHz only on a Zero W |
-| Frame name | `EPAPER_FRAME_NAME` in `/etc/epaper/epaper.env` | `living-room` | Logged at startup so two journals are distinguishable. Defaults to the hostname |
-| Data path | `EPAPER_DATA` in `/etc/epaper/epaper.env` | `/home/darcy/epaper-data` | Photos and display state. Must match the sender's `remote_photos_path` plus `/photos` |
-
-`/etc/epaper/epaper.env` sits outside the git checkout on purpose, so a deploy's
-`git reset --hard` can never wipe it. `deploy/install.sh` creates it from
-`deploy/epaper.env.example` on the first run and leaves it alone on every run after that.
+- [Getting Started](#getting-started)
+  - [Cloning](#cloning)
+  - [File Structure](#file-structure)
+  - [Setting up the Raspberry Pi](#setting-up-the-raspberry-pi)
+  - [Connecting to the Pi](#connecting-to-the-pi)
+  - [Installing the onboard software](#installing-the-onboard-software)
+  - [Executing the script](#executing-the-script)
+  - [Adding a wifi network to a running frame](adding-a-wifi-network-to-a-running-frame)
+- [Adding a frame](#adding-a-frame)
+- [Deploying code changes](#deploying-code-changes)
+- [Development](#development)
+- [Authors](#authors)
 
 ## Getting Started
 
@@ -79,13 +80,12 @@ Image transfer script files:
 
 - Plug the card into a computer, open the imager and select **Raspberry Pi OS Lite (32-bit)**, under `Raspberry Pi OS (other)`
 
-    > ⚠️ 32-bit is not a preference. The Pi Zero W is ARMv6 and the 64-bit images will not boot.
-    > Lite rather than Desktop, because there is no monitor and only 512&nbsp;MB of RAM.
+    > ⚠️ The Pi Zero W is ARMv6 and the 64-bit images will not boot. Lite rather than Desktop, because there is no monitor and only 512&nbsp;MB of RAM.
 
-- Set the hostname, and your own username and password
+- Set the hostname, and the username and password
     > ⚠️ Don't forget these values
-- Select `Configure wireless LAN` to enter your wifi credentials, and set the wifi country
-- Set your locale and timezone
+- Enter the wifi credentials
+- Set the locale and timezone
 - Enable SSH
 
     > Public-key authentication is recommended over a password. Generate a key first if you don't already have one, then paste the public half into the imager:
@@ -94,7 +94,7 @@ Image transfer script files:
     > ssh-keygen -t ed25519 -C "epaper-frame"
     > ```
 
-- Then press `SAVE` and write the image to the card
+- Write this image to the card
 
 #### Enabling USB gadget mode
 
@@ -134,16 +134,10 @@ Once the Pi has joined your network you can reach it over wifi with the same com
 ssh <username>@<hostname>.local
 ```
 
-Or, using PuTTY, enter the host name of the Pi and click `Open`:<br/>
-![Putty Configuration](docs/assets/putty_configuration.png)<br/>
+### Adding a wifi network to a running frame
 
-#### Adding a wifi network later
-
-There are two separate cases, and only the second one involves this repo:
-
-- **At imaging time.** The imager's wifi fields are per-card, so a new frame simply gets its
-  own SSID typed in. Nothing here is involved.
-- **On a frame that is already running.** Moving a frame to a different network. Connect over the cable or the current network and run:
+- Connect over usb cable or a network that it is already connected to
+- Run:
 
 ```bash
 ~/epaper/deploy/add-wifi.sh "<SSID>"
@@ -179,18 +173,12 @@ sudo nano /etc/epaper/epaper.env
 sudo systemctl restart epaper
 ```
 
-`install.sh` fills in `EPAPER_FRAME_NAME` from the hostname and `EPAPER_DATA` from where it
-just created the data directories, so the file is already correct as written. The rest —
-quiet hours, seconds per photo — is worth a look while you
-are still sitting next to it. Every knob is documented in the file itself.
-
 > A re-run of `install.sh` never overwrites an existing `/etc/epaper/epaper.env`
 
-Check that it worked and is running:
+Check that the system is running:
 
 ```bash
 systemctl status epaper
-journalctl -u epaper -f
 ```
 
 To turn on the debug pi logging:
@@ -214,7 +202,7 @@ Install the desktop dependencies:
 pip install -r requirements-sender.txt
 ```
 
-- Copy `EXAMPLE_frames.json` to `frames.json` and fill in one entry per frame
+- If necessary, create and fill out `frames.json` (see `EXAMPLE_frames.json` or below)
 - Download all the photos as a zip file
 - Run the following command in the base directory:
 
@@ -262,18 +250,13 @@ Photos are converted once and then sent to each frame in turn. To load one frame
 python -m sender.load_photos --zip "path/to/album.zip" --target living-room
 ```
 
-Each frame is reported separately and the command exits non-zero if any of them failed:
+> Each frame is reported separately and the command exits non-zero if any of them failed.
 
-```text
-living-room: 12 uploaded, 0 deleted, 88 already there
-parents:     FAILED - timed out connecting to frame-parents.local
-```
-
-Photos are matched **by filename**. A bitmap whose name the frame already has is left alone,
+Photos are matched by filename. A bitmap whose name the frame already has is left alone,
 and a name the album no longer contains is deleted from the frame.
 
 > The one thing this cannot see is a photo whose **content** changed while its **name** stayed
-> the same. That is rare for photos, but it is guaranteed after any edit to `conversion.py`. Send with `--force` once after such a change:
+> the same. That is rare for photos, but it is guaranteed after any edit to `conversion.py`. Send with `--force` to send all the photos:
 >
 > ```bash
 > python -m sender.load_photos --zip "path/to/album.zip" --force
@@ -281,23 +264,9 @@ and a name the album no longer contains is deleted from the frame.
 
 ## Adding a frame
 
-1. **Image a card** with its own hostname, username and wifi, and paste in the same public
-   key. Enable USB gadget mode before ejecting it, exactly as above.
-2. **Clone and install** on the new frame:
-
-    ```bash
-    sudo apt update && sudo apt install -y git
-    git clone https://github.com/decmccoy/epaper-rolling-photo-display.git ~/epaper
-    ~/epaper/deploy/install.sh
-    ```
-
-3. **Set its identity** in `/etc/epaper/epaper.env` — at minimum `EPAPER_FRAME_NAME`, so its
-   journal is distinguishable from the other frame's. Then `sudo systemctl restart epaper`.
-4. **Add it to `frames.json`** on the computer as another entry under `targets`, with its
-   hostname, username and `remote_photos_path`.
-5. **Check you can reach it** — `ssh <username>@<hostname>.local` should let you straight in
-   without a password prompt. If it asks for one, the key did not make it onto the card.
-6. **Send it photos**, on its own first:
+- Follow the steps above except with its own hostname, username and wifi. You can use the same public key
+- Add another entry to `frames.json` on the computer, with its hostname, username and `remote_photos_path`
+- To send it photos on its own, use:
 
     ```bash
     python -m sender.load_photos --zip "path/to/album.zip" --target <name>
