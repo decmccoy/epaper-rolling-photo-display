@@ -62,5 +62,18 @@ STABLE_SECONDS = _env_int("EPAPER_STABLE_SECONDS", 30)
 PANEL_WIDTH = 600
 PANEL_HEIGHT = 448
 
+# Ceiling on a single panel refresh. The Waveshare driver waits on the panel's
+# BUSY line in a loop with no timeout of its own, so without this a wedged panel
+# hangs the loop forever - alive, so systemd never restarts it, and silent, so
+# the journal is indistinguishable from a healthy frame.
+#
+# A real refresh takes about 30s. The upper bound is TimeoutStopSec in
+# epaper.service: a SIGTERM arriving mid-refresh cannot take effect until the
+# refresh returns, so this plus the time to put the panel to sleep has to fit
+# inside that budget, or systemd kills the process with the panel still powered.
+# Keep this comfortably under 90s unless the unit changes too.
+# Set to 0 to disable the ceiling.
+PANEL_TIMEOUT_SECONDS = _env_int("EPAPER_PANEL_TIMEOUT_SECONDS", 75)
+
 # Set EPAPER_DRY_RUN=1 to run the loop on a machine with no panel attached.
 DRY_RUN = os.environ.get("EPAPER_DRY_RUN", "") not in ("", "0", "false", "False")

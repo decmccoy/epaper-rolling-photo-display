@@ -64,12 +64,22 @@ sudo chmod 0440 /etc/sudoers.d/epaper
 echo "==> Making the deploy script executable"
 chmod +x "$REPO"/deploy/*.sh 2>/dev/null || true
 
-echo "==> Capping how much disk and memory the journal may use"
+echo "==> Making the journal survive a reboot, and capping how big it may get"
 sudo mkdir -p /etc/systemd/journald.conf.d
 sudo tee /etc/systemd/journald.conf.d/epaper.conf > /dev/null <<'EOF'
 # Installed by epaper-rolling-photo-display/deploy/install.sh.
 [Journal]
+# The Lite image ships Storage=auto with no /var/log/journal, which means the
+# journal lives in RAM and every log is lost on reboot - so the one thing you
+# want after finding a frozen frame is gone the moment you power-cycle it.
+# journald creates the directory itself when this is set to persistent.
+Storage=persistent
+
+# A healthy loop writes nothing after startup, so the cap is about bounding a
+# fault that repeats, not about steady-state volume. 32M is far more history
+# than this frame can generate and still nothing on the card.
 SystemMaxUse=32M
+SystemMaxFileSize=4M
 RuntimeMaxUse=16M
 EOF
 sudo systemctl restart systemd-journald

@@ -6,6 +6,9 @@ one place that knows how to put the panel back to sleep.
 """
 
 import logging
+import signal
+from contextlib import contextmanager
+
 from PIL import Image
 
 from pi import config
@@ -21,9 +24,17 @@ except ImportError:  # not on the Pi, or the driver was never installed
 # the file on disk, so the same photo is still wrong on the next rotation.
 _warned_about_size = set()
 
+# SIGALRM and setitimer are POSIX-only. On a Windows dev machine the timeout is
+# simply not armed; DRY_RUN returns before the panel code either way.
+_can_time_out = hasattr(signal, "SIGALRM") and hasattr(signal, "setitimer")
+
 
 class PanelUnavailableError(RuntimeError):
-    """Raised when the Waveshare driver is missing and dry-run is not enabled."""
+    """Raised when the panel cannot be talked to at all."""
+
+
+class PanelTimeoutError(RuntimeError):
+    """Raised when a refresh does not finish inside the allowed time."""
 
 
 def _require_driver():
@@ -33,6 +44,45 @@ def _require_driver():
             "'.venv/bin/pip install --no-deps ~/e-Paper/RaspberryPi_JetsonNano/python', "
             "or set EPAPER_DRY_RUN=1 to run without a panel."
         )
+
+
+def _on_alarm(_signum, _frame):
+    raise PanelTimeoutError(
+        f"the panel did not finish refreshing within "
+        f"{config.PANEL_TIMEOUT_SECONDS}s"
+    )
+
+
+@contextmanager
+def _refresh_timeout(seconds):
+    """
+    Put a ceiling on how long a block may spend talking to the panel.
+
+    Falls through untimed if the alarm cannot be armed, which is better than
+    refusing to draw anything at all.
+    """
+    if not _can_time_out or seconds <= 0:
+        yield
+        return
+
+    try:
+        previous = signal.signal(signal.SIGALRM, _on_alarm)
+    except ValueError:
+        # Signals can only be hooked from the main thread.
+        logger.debug("Not the main thread, running the refresh untimed")
+        yield
+        return
+
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        # None means the previous handler was not installed from Python, and
+        # handing that back to signal() raises - inside a finally that may be
+        # unwinding a real panel error, which would then be lost.
+        if previous is not None:
+            signal.signal(signal.SIGALRM, previous)
 
 
 def show(image_path):
@@ -68,14 +118,34 @@ def show(image_path):
 
         panel = epd5in65f.EPD()
         try:
-            panel.init()
-            panel.Clear()
-            panel.display(panel.getbuffer(image))
+            with _refresh_timeout(config.PANEL_TIMEOUT_SECONDS):
+                # init() reports failure by returning -1 rather than raising.
+                # Ignoring it means carrying on against a panel that is not
+                # there and blocking on a BUSY line that will never go high.
+                if panel.init() != 0:
+                    raise PanelUnavailableError(
+                        "the panel did not initialise - check the ribbon cable "
+                        "and that SPI is enabled"
+                    )
+
+                # No Clear() first. On this panel Clear() is a complete refresh
+                # cycle of its own, so clearing then drawing costs two full
+                # refreshes - double the power, double the panel wear and twice
+                # the exposure to a wedged BUSY line - for an image that
+                # display() fully overwrites anyway.
+                panel.display(panel.getbuffer(image))
+
             # Debug, not info: this is the one thing that happens on every
             # single cycle, and at info it is the whole steady-state log volume.
             logger.debug("Displayed %s", image_path.name)
         finally:
-            panel.sleep()
+            # Swallowed on purpose: this runs while a real failure may already
+            # be propagating, and raising here would replace that error with a
+            # less useful one.
+            try:
+                panel.sleep()
+            except Exception as error:
+                logger.warning("Could not put the panel to sleep: %s", error)
 
 
 def sleep():
