@@ -17,7 +17,7 @@ Photos are converted on a computer and only finished bitmaps are sent to a frame
   - [Connecting to the Pi](#connecting-to-the-pi)
   - [Installing the onboard software](#installing-the-onboard-software)
   - [Executing the script](#executing-the-script)
-  - [Adding a wifi network to a running frame](adding-a-wifi-network-to-a-running-frame)
+  - [Adding a wifi network to a running frame](#adding-a-wifi-network-to-a-running-frame)
 - [Adding a frame](#adding-a-frame)
 - [Deploying code changes](#deploying-code-changes)
 - [Development](#development)
