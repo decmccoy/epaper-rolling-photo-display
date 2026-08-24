@@ -274,7 +274,7 @@ and a name the album no longer contains is deleted from the frame.
 
 ## Deploying code changes
 
-Each frame checks GitHub every hour and restarts itself if anything changed.
+Each frame checks GitHub `main` every hour and restarts itself if anything changed. Overide the branch by setting `EPAPER_BRANCH` in the pi `.env` file. Example: `EPAPER_BRANCH=my-branch`
 
 To force an immediate update, or to check on it:
 
@@ -283,7 +283,7 @@ sudo systemctl start epaper-update.service
 journalctl -u epaper-update -n 20
 ```
 
-The hourly deploy updates code only. A change to the systemd units themselves is not picked up. After changing a
+The hourly deploy updates code only. A change to the systemd units is not picked up. After changing a
 unit, install it by hand on each frame:
 
 ```bash
@@ -293,7 +293,7 @@ sudo systemctl restart epaper
 
 ## Development
 
-The display loop runs on a normal computer without a panel attached:
+The display loop can run on a normal computer without a panel attached:
 
 ```bash
 EPAPER_DRY_RUN=1 EPAPER_DISPLAY_SECONDS=2 python -m pi.main_loop

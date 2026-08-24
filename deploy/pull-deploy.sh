@@ -3,19 +3,20 @@
 set -euo pipefail
 
 REPO="${EPAPER_REPO:-$HOME/epaper}"
+BRANCH="${EPAPER_BRANCH:-main}"
 
 cd "$REPO"
 
 before=$(git rev-parse HEAD)
-git fetch --quiet origin main
-after=$(git rev-parse origin/main)
+git fetch --quiet origin "$BRANCH"
+after=$(git rev-parse "origin/$BRANCH")
 
 if [ "$before" = "$after" ]; then
     exit 0
 fi
 
 echo "Updating ${before:0:8} -> ${after:0:8}"
-git reset --hard --quiet origin/main
+git reset --hard --quiet "origin/$BRANCH"
 
 if [ -s requirements-pi.txt ]; then
     "$REPO/.venv/bin/pip" install -q -r requirements-pi.txt
