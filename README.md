@@ -33,29 +33,39 @@ git clone https://github.com/decmccoy/epaper-rolling-photo-display.git
 
 ### File Structure
 
-Onboard Pi files:
+#### Onboard Pi files
 
 ```text
-├── pi/
-│   ├── main_loop.py        # the display loop, started by systemd
-│   ├── display.py          # Waveshare panel wrapper
-│   └── config.py           # settings, all overridable by environment variable
-├── deploy/
-│   ├── install.sh          # one-time setup on a fresh image
-│   ├── epaper.service      # runs the display loop
-│   ├── epaper-update.*     # timer that pulls updates from GitHub
-│   ├── pull-deploy.sh      # pulls from GitHub and restarts the frame
-│   ├── render-units.sh     # fills this frame's user and path into the units
-│   ├── epaper.env.example  # template for /etc/epaper/epaper.env
-│   └── add-wifi.sh         # adds a wifi network to a running frame
-└── requirements-pi.txt
+├── ~/
+│   ├── epaper/                         # this repo, cloned onto the Pi
+│   │   ├── pi/
+│   │   │   ├── main_loop.py            # the display loop, started by systemd
+│   │   │   ├── display.py              # Waveshare panel wrapper
+│   │   │   └── config.py               # settings, all overridable by environment variable
+│   │   ├── deploy/
+│   │   │   ├── install.sh              # one-time setup on a fresh image
+│   │   │   ├── epaper.service          # runs the display loop
+│   │   │   ├── epaper-update.*         # timer that pulls updates from GitHub
+│   │   │   ├── pull-deploy.sh          # pulls from GitHub and restarts the frame
+│   │   │   ├── render-units.sh         # fills this frame's user and path into the units
+│   │   │   ├── epaper.env.example      # template for /etc/epaper/epaper.env
+│   │   │   └── add-wifi.sh             # adds a wifi network to a running frame
+│   │   └── requirements-pi.txt
+│   └── epaper-data/                    # photos and display state
+├── /etc/epaper/
+│   └── epaper.env                      # this frame's settings, from epaper.env.example
+└── /etc/systemd/system/
+    ├── epaper.service                  # rendered from deploy/epaper.service
+    └── epaper-update.*                 # rendered from deploy/epaper-update.*
 ```
 
-The two `.service` files are templates, not finished units. They carry
-`__EPAPER_USER__` and `__EPAPER_REPO__` placeholders that `render-units.sh` fills in with
-this frame's real values before installing them to `/etc/systemd/system`.
+> The `.service` files in `deploy/` are templates. They have
+> `__EPAPER_USER__` and `__EPAPER_REPO__` placeholders that `render-units.sh` fills in with
+> the real values before installing them to `/etc/systemd/system`.
+>
+> `epaper.env` lives outside the git working tree so that the `git reset --hard` doesn't delete it.
 
-Image transfer script files:
+#### Image transfer script files
 
 ```text
 ├── sender/
@@ -108,12 +118,9 @@ which saves re-imaging the card.
 
 #### First boot
 
-Insert the micro SD into the Pi and plug it in. The first boot takes ten minutes so be patient.
+Insert the micro SD into the Pi and plug it in. The first boot can take ten minutes.
 
 ### Connecting to the Pi
-
-There are two ways in. The USB cable always works; wifi is more convenient once the Pi is on
-the network.
 
 #### Over a USB cable
 
